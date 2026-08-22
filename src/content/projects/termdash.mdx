@@ -1,0 +1,378 @@
+---
+
+title: Termdash
+description: Geometry Dash in your terminal, built in Rust with Bevy, Braille rendering and a graphical level editor.
+year: 2026
+tags:
+- Rust
+- Bevy
+repo: https://github.com/aditbajaj/termdash
+
+order: 2
+
+---
+
+I had been wanting to make a game for a while.
+
+I also wanted an excuse to properly learn Rust and Bevy.
+
+And terminals are cool.
+
+So obviously the reasonable conclusion was:
+
+*make Geometry Dash run inside one.*
+
+That became **Termdash**.
+
+It is a little Geometry Dash-style game written in Rust and Bevy, except instead of opening a normal game window, most of the game is rendered directly into the terminal.
+
+<figure>
+  <img
+    src="https://raw.githubusercontent.com/aditbajaj/termdash/main/screenshots/gameplay.gif"
+    alt="Termdash gameplay running inside a terminal"
+    loading="lazy"
+  />
+  <figcaption>
+    Geometry Dash, except your graphics API is Unicode.
+  </figcaption>
+</figure>
+
+I originally started it for Hack Club Horizons.
+
+At first I mostly wanted to see whether I could get something resembling a proper game running in a terminal.
+
+Then I added:
+
+* physics
+* obstacles and triggers
+* sprites
+* speed portals
+* music
+* an extremely fake audio visualiser
+* reusable prefabs
+* JSON levels
+* a separate graphical level editor
+* live testing
+* undo and redo
+
+At some point it stopped being a terminal gimmick and became a suspiciously normal game engine wearing a terminal as a disguise.
+
+## The terminal has terrible graphics
+
+The first problem was fairly obvious.
+
+A normal Bevy game can draw into thousands or millions of pixels.
+
+You can use block characters, ASCII, half blocks and a bunch of other tricks.
+
+But I wanted more resolution than one giant character per cell.
+
+The solution was Braille.
+
+Unicode Braille characters are basically tiny **2 × 4 grids of dots**.
+
+```text
+• •
+• •
+• •
+• •
+```
+
+Eight possible dots means one terminal character can represent eight little pieces of an image.
+
+So Termdash still lets Bevy render the game normally first.
+
+Then I take that rendered image and squash it into the terminal.
+
+Roughly:
+
+```text
+Bevy world
+    ↓
+2D camera
+    ↓
+rendered image
+    ↓
+split into 2 × 4 pixel blocks
+    ↓
+convert lit pixels into Braille dots
+    ↓
+terminal cells
+```
+
+For every terminal cell, Termdash samples a block of eight pixels.
+
+It is still obviously nowhere near a real framebuffer.
+
+But it is enough that circles look like circles, spikes actually look sharp, and the game can move smoothly without turning into ASCII soup.
+
+## It still looked kind of terrible
+
+Straight pixel-to-Braille conversion worked.
+
+Technically.
+
+The problem was that thin shapes kept disappearing.
+
+If a spike only touched one tiny sample, resizing the terminal or moving the camera by a small amount could make parts of it flicker out.
+
+So when Termdash decides a Braille dot should be on, it also lights some of its immediate neighbours.
+
+Something conceptually like:
+
+```text
+before
+
+· █
+· ·
+· ·
+· ·
+
+after
+
+█ █
+· █
+· ·
+· ·
+```
+
+It is basically fake thickness.
+
+I also ignore sufficiently dull pixels and boost the colour contrast before sending the final RGB value to the terminal.
+
+So the renderer is doing several slightly cursed things:
+
+* render a normal game
+* downsample it
+* threshold visibility
+* turn pixels into Unicode
+* deliberately make some pixels fatter
+* exaggerate the colours
+
+All to convince your terminal that it is a game console.
+
+And somehow it works.
+
+## Bevy is still doing the normal game stuff
+
+This was something I liked about the architecture.
+
+The gameplay itself does not need to know that it is eventually becoming Braille.
+
+Termdash uses Bevy as an actual game engine and Avian2D for the physics.
+
+The world can still contain things like:
+
+```text
+player
+ground
+spikes
+sawblades
+portals
+triggers
+sprites
+colliders
+```
+
+The camera follows the player.
+
+Objects have transforms.
+
+Physics runs normally.
+
+Animations run normally.
+
+Then the terminal renderer sits at the end and goes:
+
+*cool, now turn all of that into dots.*
+
+That separation meant I did not have to write an entire game engine just because the output happened to be weird.
+
+## Then I made a graphical editor for my terminal game
+
+Writing levels by hand got old fairly quickly.
+
+The levels themselves are data driven, so an object can contain things like:
+
+```json
+{
+  "prefab": "spike",
+  "position": [32.0, 4.0],
+  "scale": 1.0
+}
+```
+
+A prefab supplies most of the object definition, while the level just stores whatever needs to change.
+
+Internally an object can describe its:
+
+* visual
+* collider
+* behaviour
+* colour
+* animation
+
+So something like a spike does not need every field copied into every single level.
+
+That led to the next perfectly sensible decision:
+
+*my terminal game needs a GUI.*
+
+<figure>
+  <img
+    src="https://raw.githubusercontent.com/aditbajaj/termdash/main/screenshots/editor.png"
+    alt="Termdash graphical level editor"
+    loading="lazy"
+  />
+  <figcaption>
+    The graphical editor used to build and test levels for the terminal game.
+  </figcaption>
+</figure>
+
+The editor uses `egui` in a separate Bevy window.
+
+You can edit the level, place and modify objects, save it, then test the changes against the actual game.
+
+I also ended up adding proper undo and redo.
+
+The implementation is pleasantly boring.
+
+Every completed edit stores a snapshot of the level:
+
+```text
+edit
+ ↓
+level snapshot
+ ↓
+edit
+ ↓
+level snapshot
+ ↓
+edit
+ ↓
+level snapshot
+```
+
+Undo just walks backwards.
+
+Redo walks forwards.
+
+If you undo something and then make a new edit, everything ahead of that point gets discarded.
+
+There is a history limit of 100 states because I did not think my Geometry Dash clone needed enterprise-grade version control.
+
+## I accidentally wrote a Rust macro because I got annoyed at derives
+
+The level format became one of my favourite little parts of the project.
+
+A lot of the game's level structures needed basically the same Rust derives over and over:
+
+```rust
+Clone
+Debug
+Deserialize
+Reflect
+Serialize
+```
+
+They also needed to be registered with Bevy reflection so the editor could inspect them.
+
+And optional values needed sensible Serde behaviour.
+
+Writing all of that on every level type was ugly.
+
+So I made a little attribute macro:
+
+```rust
+#[level_data(Default)]
+pub struct PlayerDef {
+    // ...
+}
+```
+
+`#[level_data]` expands the type with the standard serialization and reflection derives, handles optional fields, and automatically registers the type with the Bevy app.
+
+Which is objectively a ridiculous amount of infrastructure to eventually produce:
+
+```text
+⠠⣤⣤⡀        ⣀⣀
+⠀⠀⠈⠻⣦   ⣠⠟
+```
+
+But learning weird parts of Rust was half the point of making the project anyway.
+
+## The audio visualiser is completely fake
+
+This deserves its own section purely because I find it funny.
+
+There is an audio visualiser in the game.
+
+It looks like it is reacting to the music.
+
+It is not.
+
+The README has always described this accurately:
+
+*"it's fake, but you won't tell!"*
+
+I could have decoded the audio and generated proper frequency data.
+
+Instead, the game needed some bars bouncing around behind Geometry Dash.
+
+They bounce around.
+
+Problem solved.
+
+## Why Rust?
+
+Mostly because I wanted to learn it.
+
+Termdash was one of those projects where deliberately choosing unfamiliar tools was part of the point.
+
+I had barely any reason to build this specific thing.
+
+There was no performance benchmark I was trying to beat.
+
+No missing developer tool I desperately needed.
+
+The starting requirements were basically:
+
+```text
+I want to make a game
++
+I want to learn Rust
++
+I want to learn Bevy
++
+terminals are cool
++
+Geometry Dash is cool
+```
+
+And that was enough.
+
+Rust actually ended up fitting the project nicely.
+
+Bevy handles the ECS and rendering.
+
+Avian2D handles physics.
+
+Ratatui handles the surrounding terminal UI.
+
+`bevy_ratatui_camera` gets the rendered game into something I can convert into terminal cells.
+
+`egui` gives me the separate graphical editor.
+
+And Serde keeps the levels and prefabs in normal files instead of hardcoding everything.
+
+It is probably more architecture than a tiny Geometry Dash clone deserved.
+
+But that is also why I enjoyed making it.
+
+Termdash started because I thought:
+
+*Geometry Dash in a terminal would look cool.*
+
+Then I somehow ended up learning Bevy's ECS, Rust proc macros, reflection, serialization, terminal rendering, physics, editor state, history systems and cross-platform release builds just to make a square jump over spikes.
+
+Worth it.

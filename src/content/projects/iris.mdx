@@ -1,0 +1,475 @@
+---
+
+title: Iris AI
+description: A cybersecurity chatbot for searching private company documents, with sources for every answer.
+year: 2026
+tags:
+- Python
+- RAG
+- React
+- Azure
+
+order: 3
+
+---
+
+Iris started because my dad had a business idea.
+
+He wanted to make a cybersecurity chatbot for companies, where they could give it all of their internal documents and then ask questions about them.
+
+He asked me if I could help code it.
+
+I thought it sounded cool, so I said yes.
+
+There was just one fairly major issue.
+
+I had no idea how to build it.
+
+I knew Python and had been programming for a while, but I had never built a RAG system before. I barely knew what a vector database was. I had never touched reranking, hybrid search, multi-tenancy or most of the other stuff that ended up going into Iris.
+
+So this project took months.
+
+A lot of that time was not even spent coding. It was me reading about something, trying to understand it, implementing it badly, figuring out why it was bad, and then doing it again.
+
+The original idea itself sounded easy enough.
+
+```text
+company documents
+       ↓
+      Iris
+       ↓
+ask questions about them
+       ↓
+get useful answers
+```
+
+Except that `Iris` box turned out to contain almost the entire project.
+
+## I thought RAG was way simpler than it actually is
+
+At the start, my understanding of RAG was basically:
+
+```text
+PDF
+ ↓
+extract text
+ ↓
+split it into chunks
+ ↓
+turn chunks into embeddings
+ ↓
+put them in a vector database
+ ↓
+search for similar chunks
+ ↓
+give them to an LLM
+ ↓
+answer
+```
+
+That is still basically what RAG is.
+
+The problem is that every single box can go wrong.
+
+If the PDF extraction sucks, you index garbage.
+
+If the chunks are bad, useful information gets split apart.
+
+If retrieval picks the wrong chunks, the LLM never even sees the answer.
+
+And if you give the model loads of irrelevant stuff, it can still produce a very convincing answer from the wrong information.
+
+I spent a lot of time messing with the retrieval part because that seemed to be where most of the problems actually came from.
+
+## Vector search is really cool, but it does stupid stuff
+
+The first proper search system I made used embeddings.
+
+Instead of searching for exact words, an embedding model turns text into vectors that roughly represent meaning.
+
+When I first got this working I thought it basically solved search.
+
+It did not.
+
+Cybersecurity documents have loads of exact names and identifiers where semantic similarity is not really what you want.
+
+Stuff like:
+
+```text
+CIS 5.2
+AC-2
+CVE-2026-1234
+TLS 1.3
+Microsoft Entra ID
+```
+
+If somebody asks about `AC-2`, I would quite like the search engine to find `AC-2`.
+
+So I added BM25 through OpenSearch.
+
+BM25 is much more like traditional search. It cares about the actual words in the query and how important they are in the documents.
+
+Now Iris had two completely different ways of searching:
+
+```text
+                   question
+                      ↓
+             ┌────────┴────────┐
+             ↓                 ↓
+       dense search        BM25 search
+         Qdrant            OpenSearch
+             ↓                 ↓
+       meaning-ish          exact-ish
+             └────────┬────────┘
+                      ↓
+                 combine them
+```
+
+Dense search was good at finding things that meant the same thing.
+
+BM25 was good at finding things that actually contained the words being searched for.
+
+Then I had another problem.
+
+How do you combine two completely different rankings?
+
+## Reciprocal rank fusion has a cool name
+
+I ended up using reciprocal rank fusion.
+
+The nice thing about RRF is that it does not really care whether one search engine thinks a result has a score of `0.83` and another thinks it has a score of `14.7`.
+
+Those scores mean completely different things anyway.
+
+It mostly cares about where each result ranked.
+
+Something that appears near the top of both searches gets rewarded.
+
+Something that only one search method found can still make it through.
+
+This was already quite a bit better.
+
+Naturally, I then made it more complicated.
+
+## Then I found HyDE
+
+HyDE stands for Hypothetical Document Embeddings.
+
+It sounded a bit ridiculous when I first read about it.
+
+Instead of only embedding the question, you ask a language model to generate a fake answer first.
+
+Then you embed that fake answer and use it for semantic search.
+
+The fake answer is not shown to the user and Iris is not assuming it is correct.
+
+It is basically just search bait.
+
+A question can be written very differently from the paragraph containing its answer.
+
+A made-up answer often looks more like the real answer than the question does, which can make semantic retrieval find better stuff.
+
+## Then the search results were all saying the same thing
+
+Another problem was duplicate information.
+
+Imagine Iris retrieves five passages:
+
+```text
+1. Passwords must contain...
+2. User passwords must contain...
+3. The password policy requires...
+4. Password requirements include...
+5. According to the password policy...
+```
+
+Amazing.
+
+Five search results and approximately one piece of information.
+
+This is especially annoying with long documents because the same idea might appear in multiple nearby chunks.
+
+So I added maximal marginal relevance.
+
+MMR basically asks two questions:
+
+```text
+is this relevant?
+
+and
+
+does this add something different?
+```
+
+If a result is really similar to something already selected, it gets penalised.
+
+That means Iris can give the model a more varied set of evidence instead of filling the context window with five slightly different versions of the same paragraph.
+
+I also added limits so one document could not completely take over the final context.
+
+## Then I rerank everything again
+
+Even after all of that, the first-stage search is still trying to find candidates quickly.
+
+Embeddings are fast because the question and documents can be represented separately.
+
+But that also means the model is not deeply comparing every question against every passage.
+
+So after cutting the search results down, Iris runs a cross-encoder over the remaining passages.
+
+The cross-encoder gets to look at the question and passage together.
+
+That is much more expensive, so running it across every chunk in every company document would be horrible.
+
+But running it on the small set that survived the earlier retrieval stages is fine.
+
+So eventually my "search some documents" code became:
+
+```text
+question
+   ↓
+HyDE
+   ↓
+┌─────────────────────┐
+│                     │
+↓                     ↓
+dense search       BM25 search
+Qdrant             OpenSearch
+│                     │
+└──────────┬──────────┘
+           ↓
+reciprocal rank fusion
+           ↓
+maximal marginal relevance
+           ↓
+cross-encoder reranking
+           ↓
+source balancing
+           ↓
+final passages
+           ↓
+LLM
+           ↓
+answer + citations
+```
+
+This was slightly more than I expected to learn when my dad asked me to help make a chatbot.
+
+## The citations were actually important
+
+One of the main things we wanted from Iris was for it to not just give an answer and expect you to trust it.
+
+That is especially bad for cybersecurity.
+
+If Iris says:
+
+```text
+Privileged accounts must use phishing-resistant MFA.
+```
+
+I want to know why.
+
+So the final passages sent to the model are numbered and keep information about where they came from.
+
+Then Iris tells the model to answer using those passages and cite them.
+
+So instead of:
+
+```text
+Privileged accounts must use MFA.
+```
+
+you get something more like:
+
+```text
+Privileged accounts must use MFA [1].
+```
+
+Now the user can actually go back and check the source.
+
+I liked this because it changes the chatbot from:
+
+```text
+AI that says things
+```
+
+into something closer to:
+
+```text
+search engine
++
+someone explaining the search results
+```
+
+The model can still be wrong, obviously.
+
+But at least you can see what information it was given and where that information came from.
+
+## PDFs annoyed me so much that Iris created another project
+
+Most of the documents going into Iris were PDFs.
+
+Unfortunately, PDFs are awful if you actually want to understand their contents.
+
+Originally I used existing PDF extraction libraries.
+
+Then while working on Iris, I started wondering why PDF extraction was taking so long.
+
+I tried optimising bits of it.
+
+Then I tried more stuff.
+
+Then somehow that side problem turned into [FibrumPDF](/projects/fibrumpdf).
+
+So this happened:
+
+```text
+build Iris
+   ↓
+need to process lots of PDFs
+   ↓
+PDF extraction annoys me
+   ↓
+try to make it faster
+   ↓
+accidentally spend months making a PDF parser
+   ↓
+put FibrumPDF back into Iris
+```
+
+FibrumPDF now handles PDF extraction for Iris and preserves useful things like headings, lists, tables and page information before the documents get indexed.
+
+I definitely did not expect the chatbot project to result in me writing C and Go for PDF parsing.
+
+## Keeping companies separate was slightly important
+
+The other massive problem was multi-tenancy.
+
+If multiple companies use Iris, this must never happen:
+
+```text
+Company A
+uploads secret document
+       ↓
+     Iris
+       ↓
+Company B
+asks a question
+       ↓
+Company A's document appears
+```
+
+That would be somewhat bad.
+
+So tenant isolation ended up being built into basically everything.
+
+Documents belong to a tenant and user.
+
+Conversations belong to a tenant and user.
+
+Database records are scoped to them.
+
+Search indexes are separated.
+
+PostgreSQL also uses row-level security so the isolation is enforced at the database level instead of relying entirely on me remembering to put the correct `WHERE` clause everywhere.
+
+The shared side can contain general cybersecurity knowledge.
+
+The private side contains that company's own documents.
+
+They can both contribute to an answer without putting every company's private data into one giant searchable bucket.
+
+This was one of those things where the basic idea is obvious:
+
+*don't leak company documents.*
+
+Actually designing the application so that assumption holds across the database, search systems, uploads and conversations was much more work.
+
+## Authentication also became part of the problem
+
+Iris uses Microsoft Entra ID for authentication.
+
+That made sense because the whole thing was aimed at companies, especially ones already using Microsoft and Azure.
+
+But authentication was not just about putting a login screen in front of the app.
+
+The identity needs to follow the request all the way through:
+
+```text
+Microsoft Entra ID
+        ↓
+      user
+        ↓
+      tenant
+        ↓
+ ┌──────┼──────┐
+ ↓      ↓      ↓
+docs   chats   search
+```
+
+Otherwise you have successfully authenticated someone and then immediately forgotten whose data they are supposed to be searching.
+
+For development, I also added a local authentication mode so I did not have to go through an OAuth flow every single time I wanted to test something.
+
+## There are a suspicious number of databases
+
+By the end, Iris had become something like:
+
+```text
+                   frontend
+                      ↓
+                   FastAPI
+                      ↓
+        ┌─────────────┼─────────────┐
+        ↓             ↓             ↓
+   PostgreSQL       Qdrant      OpenSearch
+        ↓             ↓             ↓
+ users + chats      vectors        BM25
+ documents          dense         keywords
+ metadata           search
+        └─────────────┼─────────────┘
+                      ↓
+                RAG pipeline
+                      ↓
+                     LLM
+```
+
+PostgreSQL stores normal application data like documents, conversations and messages.
+
+Qdrant handles dense vector search.
+
+OpenSearch handles BM25.
+
+The backend is written in Python with FastAPI, and the frontend talks to it through an API with streamed responses.
+
+## This project took ages
+
+Iris was probably the first project where I had to learn this many completely different things just to keep building it.
+
+When I started, I did not properly understand RAG.
+
+By the end I had spent months learning about retrieval, embeddings, BM25, ranking, reranking, databases, authentication, multi-tenancy, streaming APIs, document processing and a bunch of Azure stuff.
+
+And then one performance problem inside Iris somehow turned into FibrumPDF, which became an entire separate project.
+
+The funny part is that the original business idea still sounds extremely simple:
+
+```text
+give AI company documents
+        ↓
+ask questions
+        ↓
+get useful answers
+```
+
+Most of Iris is everything required to make those three boxes not suck.
+
+The LLM itself ended up being one of the less interesting parts.
+
+Getting the right information in front of it, keeping that information private, removing garbage from the search results, and showing where the answer came from was much harder.
+
+I started Iris because my dad had a business idea and asked me to help code it.
+
+I said yes without really knowing how I was going to build it.
+
+Then I spent the next few months finding out.

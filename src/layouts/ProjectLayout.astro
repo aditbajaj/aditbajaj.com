@@ -1,0 +1,205 @@
+---
+import type { CollectionEntry } from "astro:content";
+import Layout from "./Layout.astro";
+
+interface Props {
+  project: CollectionEntry<"projects">;
+}
+
+const { project } = Astro.props;
+const { title, description, year, tags, repo } = project.data;
+---
+
+<Layout title={`${title} | Adit Bajaj`} description={description}>
+  <article class="wrap project">
+    <a class="back" href="/#projects">← Projects</a>
+
+    <header>
+      <p class="meta">{year} / {tags.join(" / ")}</p>
+      <h1>{title}</h1>
+      <p class="description">{description}</p>
+      {repo && (
+        <a class="source" href={repo} target="_blank" rel="noopener noreferrer">
+          Source code <span aria-hidden="true">↗</span>
+        </a>
+      )}
+    </header>
+
+    <div class="content">
+      <slot />
+    </div>
+
+    {repo && (
+      <a
+        class="bottom-source"
+        href={repo}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Source code on GitHub <span aria-hidden="true">↗</span>
+      </a>
+    )}
+  </article>
+</Layout>
+
+<style>
+  .project {
+    --article-width: 54rem;
+    padding-block: 1.5rem clamp(4rem, 10vw, 7rem);
+  }
+
+  .back {
+    display: block;
+    width: min(100%, var(--article-width));
+    margin-inline: auto;
+    color: var(--muted);
+    font-size: 0.9rem;
+    text-decoration: none;
+  }
+
+  .back:hover,
+  .back:focus-visible {
+    color: var(--text);
+  }
+
+  header {
+    width: min(100%, var(--article-width));
+    margin-inline: auto;
+    padding-block: clamp(3rem, 8vw, 5rem);
+  }
+
+  .meta {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 0.75rem 0 0;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+  }
+
+  .description {
+    margin: 1.25rem 0 0;
+    color: var(--muted);
+    font-size: clamp(1.2rem, 2vw, 1.4rem);
+  }
+
+  .source {
+    display: inline-block;
+    margin-top: 1.25rem;
+    font-size: 0.9rem;
+  }
+
+  .bottom-source {
+    display: block;
+    width: min(100%, var(--article-width));
+    margin: 3rem auto 0;
+    color: var(--link);
+    font-size: 1rem;
+  }
+
+  .content {
+    width: min(100%, var(--article-width));
+    margin-inline: auto;
+    font-size: 1.25rem;
+  }
+
+  .content :global(h2),
+  .content :global(h3) {
+    margin: 2.5em 0 0.75em;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+
+  .content :global(h2) {
+    font-size: clamp(2rem, 5vw, 2.75rem);
+  }
+
+  .content :global(h3) {
+    font-size: 1.5rem;
+  }
+
+  .content :global(a) {
+    color: var(--link);
+  }
+
+  .content :global(p),
+  .content :global(ul),
+  .content :global(ol),
+  .content :global(table) {
+    margin: 0 0 1rem;
+  }
+
+  .content :global(ul),
+  .content :global(ol) {
+    padding-left: 1.25rem;
+  }
+
+  .content :global(li) {
+    margin-block: 0.3rem;
+  }
+
+  .content :global(blockquote) {
+    margin: 1.5rem 0;
+    padding-left: 1rem;
+    border-left: 2px solid var(--line);
+    color: var(--muted);
+  }
+
+  .content :global(code) {
+    padding: 0.1em 0.25em;
+    background: var(--surface);
+    font-size: 0.9em;
+  }
+
+  .content :global(pre) {
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: var(--surface);
+    line-height: 1.5;
+  }
+
+  .content :global(pre code) {
+    padding: 0;
+    background: none;
+  }
+
+  .content :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+  }
+
+  .content :global(th),
+  .content :global(td) {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+  }
+
+  .content :global(th:not(:first-child)),
+  .content :global(td:not(:first-child)) {
+    text-align: right;
+  }
+
+  .content :global(figure) {
+    margin: 2rem 0 2.5rem;
+  }
+
+  .content :global(figure img) {
+    width: 100%;
+  }
+
+  .content :global(figcaption) {
+    margin-top: 0.5rem;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+</style>

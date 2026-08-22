@@ -1,0 +1,236 @@
+---
+
+title: History Hologram
+description: A 3D storytelling engine that turns historical scenes into Pepper's Ghost holograms using an iPad and a clear reflector.
+year: 2026
+tags:
+- TypeScript
+- React
+- Three.js
+repo: https://github.com/aditbajaj/history-hologram
+
+order: 2
+
+---
+
+History Hologram started at a 48-hour Hack Club hackathon in Sydney.
+
+The theme was:
+
+*the crux of storytelling.*
+
+Our team composition was slightly cursed.
+
+One of us basically only knew hardware.
+
+Another knew Godot and TypeScript.
+
+I mostly knew Go, C and Python, with a bit of TypeScript.
+
+We also had **no hardware tools whatsoever**.
+
+Naturally, we ended up building the only hardware project at the hackathon.
+
+The idea was to turn historical stories into little Pepper's Ghost holograms.
+
+Instead of reading about something like ANZAC Cove through a wall of text, you could watch a 3D scene unfold with narration, camera movement, audio and models, then project the whole thing into a clear reflector sitting on an iPad.
+
+<figure>
+  <img
+    src="https://raw.githubusercontent.com/aditbajaj/history-hologram/main/screenshots/anzac.gif"
+    alt="History Hologram ANZAC Cove scene"
+    loading="lazy"
+  />
+  <figcaption>
+    The ANZAC Cove scene running in the normal 3D view.
+  </figcaption>
+</figure>
+
+## The hardest part was apparently buying plastic
+
+Because we were doing a physical Pepper's Ghost display, we needed a clear sheet to build the reflector.
+
+This somehow became a major engineering problem.
+
+We spent **hours** deciding what plastic to buy.
+
+Acrylic?
+
+Polypropylene?
+
+Clear film?
+
+How thick?
+
+Would it bend?
+
+Would it reflect enough light?
+
+Would it look terrible on an iPad?
+
+Eventually we decided we actually had to leave the venue and buy something.
+
+The organisers did not want to come with us.
+
+At all.
+
+They were comfortable.
+
+We were the only group trying to leave.
+
+And they basically weren't leaving unless they had to come with us.
+
+So after an unreasonable amount of discussion, we dragged everyone into our hardware-acquisition side quest anyway.
+
+Very efficient use of a 48-hour hackathon.
+
+## The software became a tiny scene engine
+
+We did not want to hardcode one ANZAC animation.
+
+So the stories are written in YAML.
+
+Something like:
+
+```yaml
+actors:
+  - id: hero
+    src: ../models/anzac-hero.glb
+    position: [0, 0, 0]
+
+moments:
+  - at: 0
+    label: ARRIVAL
+
+  - at: 12
+    label: FIRST LIGHT
+```
+
+Then the same timeline controls:
+
+* camera movement
+* models
+* narration
+* subtitles
+* ambience
+* effects
+
+The React app does not know what ANZAC Cove is.
+
+It just knows how to play a scene.
+
+That was probably the most important design decision, because it meant the project became more than one hackathon demo.
+
+You could make another historical story by adding assets and editing YAML instead of writing another frontend.
+
+## Making the "hologram"
+
+Pepper's Ghost is basically a reflection trick.
+
+Put a clear angled surface over a bright screen and the reflected image appears to float in space.
+
+For a four-sided pyramid, you render the same scene four ways around the centre:
+
+<figure>
+  <img
+    src="https://raw.githubusercontent.com/aditbajaj/history-hologram/main/screenshots/carsSpinning.png"
+    alt="Four synchronized views for the Pepper's Ghost reflector"
+    loading="lazy"
+  />
+  <figcaption>
+    Four mirrored views of the same scene for the reflector.
+  </figcaption>
+</figure>
+
+So the pipeline became roughly:
+
+```text
+YAML story
+    ↓
+timeline
+    ↓
+React + Three.js
+    ↓
+3D scene
+    ↓
+four mirrored views
+    ↓
+iPad
+    ↓
+clear plastic pyramid
+    ↓
+"hologram"
+```
+
+We also kept a normal 3D mode because developing while constantly balancing a plastic pyramid on an iPad would have been miserable.
+
+## The presentation went... okay
+
+The actual hackathon presentation was not exactly flawless.
+
+The hologram was hard to see.
+
+The venue was too bright.
+
+We had recorded narration, but it was not properly synced with the scene.
+
+Some things worked better on our screen than through the reflector.
+
+And after spending all that time building the physical part, the final effect was much less dramatic in the presentation than we wanted.
+
+So when we finished presenting, I was not exactly thinking:
+
+*yeah, we definitely won something.*
+
+Then we somehow won the **GitHub award**.
+
+I was genuinely surprised as hell.
+
+Especially because our project was probably one of the least reliable things to demo in that room.
+
+Everyone else could open a website.
+
+We had:
+
+```text
+web app
++
+3D engine
++
+audio
++
+iPad
++
+plastic
++
+room lighting
++
+hope
+```
+
+But I think that was also what made it fun.
+
+We were the only team trying to make the software physically leave the screen.
+
+<figure>
+  <img
+    src="https://raw.githubusercontent.com/aditbajaj/history-hologram/main/screenshots/physical-setup.jpg"
+    alt="Physical History Hologram setup using an iPad and clear reflector"
+    loading="lazy"
+  />
+  <figcaption>
+    The final setup: an iPad, a clear reflector and a lot of optimism.
+  </figcaption>
+</figure>
+
+By the end of the hackathon, we had a reusable 3D story player, an ANZAC Cove scene, synchronized timelines, four-way reflector rendering and an actual physical display.
+
+It was janky.
+
+The presentation barely showed it properly.
+
+The narration was not synced.
+
+And somehow it still won an award.
+
+Pretty good weekend.

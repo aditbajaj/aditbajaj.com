@@ -1,0 +1,75 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title = "Adit Bajaj",
+  description = "idk",
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="wordmark" href="/" aria-label="Adit Bajaj, home">AB</a>
+        <a
+          href="https://github.com/intercepted16"
+          target="_blank"
+          rel="noopener noreferrer"
+        >GitHub <span aria-hidden="true">↗</span></a>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+  </body>
+</html>
+
+<style>
+  .site-header {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .header-inner {
+    display: flex;
+    min-height: 4rem;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .header-inner a {
+    color: var(--muted);
+    font-size: 0.875rem;
+    text-decoration: none;
+  }
+
+  .header-inner a:hover,
+  .header-inner a:focus-visible {
+    color: var(--text);
+  }
+
+  .header-inner .wordmark {
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 700;
+  }
+</style>

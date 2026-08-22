@@ -1,0 +1,300 @@
+---
+
+title: FibrumPDF
+description: A fast PDF parser for RAG that keeps headings, lists, links and tables.
+year: 2026
+tags:
+  - Python
+  - Go
+  - C
+repo: https://github.com/aditbajaj/fibrumpdf
+
+order: 4
+
+---
+
+A PDF is an annoying format not made for extraction, yet everyone still uses it.
+
+I made FibrumPDF because I was working on a RAG project and kept looking at PDF extraction thinking:
+
+*surely this could be faster.*
+
+I was using PyMuPDF4LLM, and it was good. The output quality was solid, it handled useful structure, and it was convenient.
+
+But I had a hunch that a lot of the work it was doing did not actually need to be slow.
+
+First I just tried some random stuff with a lot of AI help: find hot paths, write em in some Cython, OK, maybe just drop down into C for a few parts. Nah. Didn't work.
+
+Eventually I kind of just started trying to replicate PyMuPDF4LLM in pure C, and it was quite bad and very, very sloppy code.
+
+After a while, I decided an easier solution would just to make my own parser in Go, but drop down to C for MuPDF.
+
+Honestly, for some reason, these decisions gave me benefits outside what I was even aiming for.
+
+On my benchmark of 512 PDFs, FibrumPDF reaches:
+
+-  **318.23 pages/second on CPU**
+-  **87.31 text score**
+-  **0.783 table TEDS**
+-  around **77× the throughput of PyMuPDF4LLM**
+
+And the part I found most interesting was that the quality basically did not fall apart.
+
+PyMuPDF4LLM scored **86.54** on text and **0.778** on table TEDS.
+
+FibrumPDF scored **87.31** and **0.783**.
+
+So on this benchmark, it ended up giving me roughly the same extraction quality, but massively faster.
+
+There are even faster tools like `pdftotext`, of course.
+
+But those are solving a simpler problem.
+
+I still wanted:
+
+-  headings
+-  lists
+-  bold and italic text
+-  links
+-  reading order
+-  tables
+-  borderless tables
+-  useful structure for RAG and search
+
+That was the whole point.
+
+I did not want the fastest possible way to dump text from a PDF.
+
+I wanted something in the middle: **proper document structure, but fast enough that parsing thousands of PDFs does not become the bottleneck.**
+
+<figure>
+  <img
+    src="https://raw.githubusercontent.com/aditbajaj/fibrumpdf/main/benchmark/results/speed.png"
+    alt="FibrumPDF extraction speed benchmark"
+    loading="lazy"
+  />
+  <figcaption>
+    Extraction throughput compared with PyMuPDF4LLM and Docling.
+  </figcaption>
+</figure>
+
+<figure>
+  <img
+    src="https://raw.githubusercontent.com/aditbajaj/fibrumpdf/main/benchmark/results/quality.png"
+    alt="FibrumPDF extraction quality benchmark"
+    loading="lazy"
+  />
+  <figcaption>
+    Extraction quality compared with PyMuPDF4LLM and Docling. (Tables: Green = Recall, Blue = Precision).
+  </figcaption>
+</figure>
+
+## So why is it fast?
+
+The main thing I changed was where the work happens.
+
+```text
+PDF
+ ↓
+MuPDF
+ ↓
+raw text + positions + fonts + lines
+ ↓
+Go
+ ↓
+structured document
+ ↓
+Python API
+```
+
+MuPDF already does the annoying low-level PDF parsing.
+
+After that, FibrumPDF grabs the information it needs from each page and does most of the heavy processing in Go instead of Python.
+
+That includes things like:
+
+-  figuring out reading order
+-  detecting headings
+-  grouping text
+-  processing geometry
+-  finding tables
+-  reconstructing document structure
+
+Python is mostly just the interface.
+
+This matters because PDF pages contain loads of tiny pieces of information.
+
+If you keep bouncing thousands of those tiny values through Python objects and loops, the overhead adds up really quickly.
+
+With FibrumPDF, the hot path stays in compiled code.
+
+Pages can also be processed concurrently instead of everything being pushed through one Python execution path.
+
+And I try not to ask the PDF for the same information over and over again.
+
+The page gets extracted into one raw representation first.
+
+After that, later stages work from the data already in memory.
+
+So a lot of the speed comes from fairly normal stuff:
+
+-  compiled code
+-  less Python overhead
+-  fewer language-boundary crossings
+-  processing pages concurrently
+-  extracting page data once
+-  reusing that data
+-  cheap heuristics instead of model inference
+
+There was not one magical optimisation.
+
+It was more like removing lots of small pieces of unnecessary work.
+
+## The PDF does not actually know what a heading is
+
+A PDF usually does not contain this:
+
+```html
+<h1>Introduction</h1>
+```
+
+It is more like:
+
+```text
+"Introduction"
+font-size: 19.2
+bold: true
+position: (72, 108)
+```
+
+FibrumPDF looks at things like:
+
+-  how large the font is compared with normal text
+-  whether it is bold
+-  how long the text is
+-  whether it ends in punctuation
+-  capitalization
+-  numbered headings like `2.3 Results`
+-  how many lines it takes up
+
+None of those rules are amazing on their own.
+
+But together they work surprisingly well.
+
+## Tables were worse
+
+Normal bordered tables are not too bad.
+
+If the PDF contains actual vector lines, you can use those to reconstruct rows and columns.
+
+Borderless tables are much more annoying.
+
+Something like this:
+
+```text
+Product            Price          Quantity
+Keyboard           $120           2
+Monitor            $400           1
+Mouse              $60            3
+```
+
+looks obviously like a table to us.
+
+To the parser, it is just text sitting at coordinates.
+
+There may be absolutely nothing saying **these things belong together.**
+
+So I ended up using the empty space.
+
+If the same gaps keep appearing in roughly the same horizontal positions across multiple rows, that is a pretty good sign that they are separating columns.
+
+```text
+Product        Price        Quantity
+███████        █████        ████████
+        ↑             ↑
+       gap           gap
+```
+
+Once those gaps line up often enough, they become candidate column boundaries.
+
+And suddenly a bunch of random coordinates starts looking like a table.
+
+## Then I accidentally started detecting everything as a table
+
+This was the fun part.
+
+A two-column research paper can look a lot like a borderless table geometrically.
+
+```text
+Lorem ipsum dolor...        Another paragraph starts...
+continues down the page     and continues down the page...
+with lots of prose.         with even more prose.
+```
+
+So just finding columns is nowhere near enough.
+
+I had to add checks for things that look table-like but probably are not.
+
+For example:
+
+-  long wrapped prose
+-  newspaper-style columns
+-  huge mostly-empty grids
+-  layouts with very few real multi-column rows
+-  dense text pages where the "table" is basically the entire page
+
+So the detector is not only asking:
+
+**"does this look like a table?"**
+
+It is also constantly asking:
+
+**"what evidence do I have that this definitely is not a table?"**
+
+I genuinely liked this part of the project.
+
+There is no AI model looking at a screenshot and deciding what it sees.
+
+It is mostly geometry, whitespace, statistics, and a pile of heuristics trying not to get tricked.
+
+## Fast does not matter if the output sucks
+
+Obviously, I could make an incredibly fast PDF parser by just returning all the text in the wrong order.
+
+That would be useless.
+
+I used [Marker's](https://github.com/datalab-to/marker) [Hugging Face dataset](https://huggingface.co/datasets/datalab-to/marker_benchmark), borrowing some of their benchmarking code, but heavily fitting it to my needs.
+
+I benchmarked FibrumPDF against PyMuPDF4LLM and Docling across 512 PDFs.
+
+| Parser        | Pages / sec | Text score | Table TEDS |
+| ------------- | ----------: | ---------: | ---------: |
+| **FibrumPDF** |  **318.23** |  **87.31** |  **0.783** |
+| PyMuPDF4LLM   |        4.15 |      86.54 |      0.778 |
+| Docling       |        0.62 |      91.13 |      0.821 |
+
+This was the result that surprised me.
+
+I originally just thought:
+
+*PyMuPDF4LLM is probably leaving a lot of speed on the table.*
+
+I did not know whether I could make something dramatically faster without ruining the output.
+
+But on this benchmark, FibrumPDF ended up with almost identical measured quality while being around **77× faster**.
+
+Docling still scores better, especially on harder documents.
+
+That makes sense. It is doing more expensive document understanding.
+
+And again, something like `pdftotext` can absolutely go faster than FibrumPDF.
+
+But raw text extraction was never the goal.
+
+The goal was to get most of the useful structure I actually wanted for RAG without waiting seconds for every PDF.
+
+That is basically how FibrumPDF happened.
+
+I had a hunch that PDF parsing could be much faster.
+
+Then I spent way too much time proving it.

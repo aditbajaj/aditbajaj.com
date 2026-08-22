@@ -1,17 +1,125 @@
 ---
+import { getCollection } from "astro:content";
+import Layout from "../layouts/Layout.astro";
 
+const projects = (await getCollection("projects")).sort(
+  (a, b) => b.data.order - a.data.order,
+);
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout
+  title="Adit Bajaj | Software developer"
+  description=""
+>
+  <section class="intro wrap" aria-labelledby="intro-title">
+    <h1 id="intro-title">Adit Bajaj</h1>
+    <p>
+      I like to make software. It looks random, but it's not, trust me.
+    </p>
+  </section>
+
+  <section class="projects wrap" id="projects" aria-labelledby="projects-title">
+    <h2 id="projects-title">Projects</h2>
+
+    <ol>
+      {projects.map((project) => (
+        <li>
+          <article>
+            <div class="project-heading">
+              <h3>
+                <a href={`/projects/${project.id}/`}>{project.data.title}</a>
+              </h3>
+              <span>{project.data.year}</span>
+            </div>
+          <p>{project.data.description}</p>
+          <!-- this dot thingy was copied from a random site -->
+          <p class="stack">{project.data.tags.join(" · ")}</p> 
+          </article>
+        </li>
+      ))}
+    </ol>
+  </section>
+</Layout>
+
+<style>
+  .intro {
+    padding-block: clamp(4rem, 10vw, 7rem);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(2.75rem, 8vw, 5.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.055em;
+  }
+
+  .intro p {
+    max-width: 43rem;
+    margin: 1.5rem 0 0;
+    color: var(--muted);
+    font-size: clamp(1.1rem, 2vw, 1.35rem);
+  }
+
+  .projects {
+    padding-bottom: clamp(4rem, 10vw, 7rem);
+    scroll-margin-top: 2rem;
+  }
+
+  h2 {
+    margin: 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    padding-block: clamp(1.75rem, 4vw, 2.5rem);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .project-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: clamp(1.35rem, 3vw, 1.75rem);
+    letter-spacing: -0.02em;
+  }
+
+  h3 a {
+    text-decoration-thickness: 1px;
+    text-decoration-color: transparent;
+  }
+
+  h3 a:hover,
+  h3 a:focus-visible {
+    text-decoration-color: currentColor;
+  }
+
+  .project-heading span,
+  .stack {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  article > p:not(.stack) {
+    max-width: 46rem;
+    margin: 0.65rem 0 0;
+  }
+
+  .stack {
+    margin: 0.75rem 0 0;
+  }
+</style>
