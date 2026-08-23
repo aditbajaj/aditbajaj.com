@@ -1,49 +1,60 @@
 ---
 import { getCollection } from "astro:content";
+import ProjectPreview from "../components/ProjectPreview.astro";
 import Layout from "../layouts/Layout.astro";
 
 const projects = (await getCollection("projects")).sort(
-  (a, b) => b.data.order - a.data.order,
+  (a, b) => a.data.order - b.data.order,
 );
 ---
 
 <Layout
   title="Adit Bajaj | Software developer"
-  description=""
+  description="Projects by Adit Bajaj: FibrumPDF, Iris, Termdash and History Hologram."
 >
   <section class="intro wrap" aria-labelledby="intro-title">
     <h1 id="intro-title">Adit Bajaj</h1>
     <p>
-      I like to make software. It looks random, but it's not, trust me.
+      I like taking things apart, figuring out how they work, and building
+      something from what I find.
     </p>
   </section>
 
   <section class="projects wrap" id="projects" aria-labelledby="projects-title">
     <h2 id="projects-title">Projects</h2>
 
-    <ol>
-      {projects.map((project) => (
-        <li>
-          <article>
-            <div class="project-heading">
-              <h3>
-                <a href={`/projects/${project.id}/`}>{project.data.title}</a>
-              </h3>
-              <span>{project.data.year}</span>
-            </div>
-          <p>{project.data.description}</p>
-          <!-- this dot thingy was copied from a random site -->
-          <p class="stack">{project.data.tags.join(" · ")}</p> 
-          </article>
-        </li>
-      ))}
-    </ol>
+    <div class="project-showcase">
+      <ol>
+        {projects.map((project) => {
+          const number = String(project.data.order).padStart(2, "0");
+
+          return (
+            <li class="project-item">
+              <a class="project-link" href={`/projects/${project.id}/`}>
+                <ProjectPreview project={project} />
+                <div class="project-heading">
+                  <div>
+                    <span class="project-number" aria-hidden="true">
+                      {number}
+                    </span>
+                    <h3>{project.data.title}</h3>
+                  </div>
+                  <span class="project-arrow" aria-hidden="true">↗</span>
+                </div>
+                <p>{project.data.description}</p>
+                <p class="stack">{project.data.tags.join(" · ")}</p>
+              </a>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   </section>
 </Layout>
 
 <style>
   .intro {
-    padding-block: clamp(4rem, 10vw, 7rem);
+    padding-block: clamp(3.5rem, 8vw, 5.5rem) clamp(2.75rem, 6vw, 4.25rem);
   }
 
   h1 {
@@ -80,9 +91,30 @@ const projects = (await getCollection("projects")).sort(
     list-style: none;
   }
 
-  li {
-    padding-block: clamp(1.75rem, 4vw, 2.5rem);
-    border-bottom: 1px solid var(--line);
+  .project-showcase {
+    margin-top: clamp(1.5rem, 3vw, 2rem);
+  }
+
+  ol {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(2rem, 5vw, 4rem) clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .project-link {
+    display: block;
+    height: 100%;
+    text-decoration: none;
+  }
+
+  .project-link :global(.preview-frame) {
+    transition: border-color 160ms ease, transform 160ms ease;
+  }
+
+  .project-link:hover :global(.preview-frame),
+  .project-link:focus-visible :global(.preview-frame) {
+    border-color: var(--accent);
+    transform: translateY(-0.2rem);
   }
 
   .project-heading {
@@ -90,6 +122,19 @@ const projects = (await getCollection("projects")).sort(
     align-items: baseline;
     justify-content: space-between;
     gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .project-heading > div {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+
+  .project-number {
+    color: var(--accent);
+    font-family: ui-monospace, monospace;
+    font-size: 0.75rem;
   }
 
   h3 {
@@ -98,28 +143,44 @@ const projects = (await getCollection("projects")).sort(
     letter-spacing: -0.02em;
   }
 
-  h3 a {
-    text-decoration-thickness: 1px;
-    text-decoration-color: transparent;
+  .project-arrow {
+    color: var(--accent);
+    opacity: 0;
+    transform: translate(-0.3rem, 0.3rem);
+    transition: opacity 160ms ease, transform 160ms ease;
   }
 
-  h3 a:hover,
-  h3 a:focus-visible {
-    text-decoration-color: currentColor;
+  .project-link:hover .project-arrow,
+  .project-link:focus-visible .project-arrow {
+    opacity: 1;
+    transform: translate(0, 0);
   }
 
-  .project-heading span,
   .stack {
-    color: var(--muted);
+    color: #55554f;
     font-size: 0.8rem;
   }
 
-  article > p:not(.stack) {
-    max-width: 46rem;
-    margin: 0.65rem 0 0;
+  .project-link > p:not(.stack) {
+    max-width: 32rem;
+    margin: 0.75rem 0 0;
   }
 
   .stack {
     margin: 0.75rem 0 0;
+  }
+
+  @media (max-width: 34rem) {
+    ol {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .project-link,
+    .project-arrow,
+    .project-link :global(.preview-frame) {
+      transition: none;
+    }
   }
 </style>

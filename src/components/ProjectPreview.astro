@@ -1,0 +1,392 @@
+---
+// All HTML and styling in this code was produced by AI (not the content).
+// (That's why this is isolated).
+// I could not find good images to put, and this looks quite neat.
+// But I wasn't gonna spend that long messing with CSS and write this many lines.
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+  project: CollectionEntry<"projects">;
+}
+
+const { project } = Astro.props;
+const { preview } = project.data;
+const isFibrumPDF = project.id === "fibrumpdf";
+---
+
+<div
+  class:list={[
+    "preview-frame",
+    { schematic: !preview && !isFibrumPDF, fibrum: isFibrumPDF },
+  ]}
+  style={isFibrumPDF ? "background: #fff" : undefined}
+>
+  {isFibrumPDF ? (
+    <div
+      class="fibrum-result"
+      aria-label="FibrumPDF turns a PDF into structured output at 318 pages per second"
+    >
+      <header>
+        <span>FibrumPDF / extraction</span>
+        <span>512 PDF benchmark</span>
+      </header>
+
+      <div class="conversion">
+        <section>
+          <p>PDF</p>
+          <div class="pdf-page" aria-hidden="true">
+            <b>Quarterly Report</b>
+            <i></i>
+            <i></i>
+            <ul>
+              <li>Revenue</li>
+              <li>Costs</li>
+            </ul>
+            <table>
+              <tbody>
+                <tr><td></td><td></td><td></td></tr>
+                <tr><td></td><td></td><td></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <span class="conversion-arrow" aria-hidden="true">→</span>
+
+        <section>
+          <p>Structured output</p>
+          <pre aria-hidden="true"><strong># Quarterly Report</strong>
+
+- Revenue
+- Costs
+
+| Q1 | Q2 |
+| -- | -- |</pre>
+        </section>
+      </div>
+
+      <footer>
+        <div><strong>318</strong><span>pages / sec</span></div>
+        <p><b>77×</b> PyMuPDF4LLM</p>
+      </footer>
+    </div>
+  ) : preview ? (
+    <img
+      src={preview.src}
+      alt={preview.alt}
+      loading="lazy"
+      decoding="async"
+      draggable="false"
+      class:list={{ contain: preview.fit === "contain" }}
+    />
+  ) : (
+    <div class="iris-diagram" aria-label="Iris retrieval path from a query to a cited answer">
+      <header class="iris-header">
+        <span>Iris / private knowledge</span>
+        <b>Private · Grounded · Cited</b>
+      </header>
+      <div class="knowledge-path" aria-hidden="true">
+        <span>Company documents</span>
+        <i>→</i>
+        <strong>Private index</strong>
+        <i>→</i>
+        <span>Dense + BM25</span>
+        <i>→</i>
+        <strong>Rerank</strong>
+      </div>
+      <div class="answer">
+        <span>Grounded answer</span>
+        <b>Privileged access requires stronger authentication.</b>
+        <p><mark>[1]</mark> Access Control Standard · p. 14</p>
+        <p><mark>[2]</mark> Identity Policy · p. 7</p>
+      </div>
+    </div>
+  )}
+</div>
+
+<style>
+  .preview-frame {
+    display: grid;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+  }
+
+  .preview-frame::selection,
+  .preview-frame :global(*)::selection {
+    background: transparent;
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+  }
+
+  img.contain {
+    padding: clamp(1rem, 3vw, 2rem);
+    background: #fff;
+    object-fit: contain;
+  }
+
+  .preview-frame.schematic {
+    padding: clamp(1rem, 3vw, 2rem);
+    background: var(--surface);
+  }
+
+  .preview-frame.fibrum {
+    padding: clamp(0.85rem, 2.25vw, 1.5rem);
+    background: #fff;
+  }
+
+  .fibrum-result {
+    width: 100%;
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .fibrum-result header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-size: clamp(0.5rem, 0.85vw, 0.65rem);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .conversion {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(0.4rem, 1vw, 0.8rem);
+    padding-block: clamp(0.55rem, 1.5vw, 1rem);
+  }
+
+  .conversion section > p {
+    margin: 0 0 0.35rem;
+    color: var(--muted);
+    font-size: clamp(0.48rem, 0.8vw, 0.62rem);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .pdf-page,
+  .conversion pre {
+    height: clamp(5.9rem, 13vw, 8.25rem);
+    margin: 0;
+    border: 1px solid var(--line);
+    background: var(--background);
+  }
+
+  .pdf-page {
+    padding: clamp(0.55rem, 1.2vw, 0.85rem);
+  }
+
+  .pdf-page b {
+    display: block;
+    margin-bottom: 0.45rem;
+    font-family: Inter, ui-sans-serif, sans-serif;
+    font-size: clamp(0.55rem, 1vw, 0.78rem);
+  }
+
+  .pdf-page i {
+    display: block;
+    width: 92%;
+    height: 2px;
+    margin-top: 0.25rem;
+    background: var(--line);
+  }
+
+  .pdf-page i:nth-of-type(2) {
+    width: 70%;
+  }
+
+  .pdf-page ul {
+    margin: 0.45rem 0;
+    padding-left: 0.85rem;
+    font-family: Inter, ui-sans-serif, sans-serif;
+    font-size: clamp(0.45rem, 0.75vw, 0.58rem);
+  }
+
+  .pdf-page table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .pdf-page td {
+    height: clamp(0.3rem, 0.7vw, 0.5rem);
+    border: 1px solid var(--line);
+  }
+
+  .conversion pre {
+    overflow: hidden;
+    padding: clamp(0.55rem, 1.2vw, 0.85rem);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: clamp(0.46rem, 0.82vw, 0.65rem);
+    line-height: 1.45;
+    white-space: pre-wrap;
+  }
+
+  .conversion pre strong {
+    color: var(--text);
+  }
+
+  .conversion-arrow {
+    color: var(--accent);
+    font-size: clamp(0.85rem, 2vw, 1.25rem);
+  }
+
+  .fibrum-result footer {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .fibrum-result footer div {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+  }
+
+  .fibrum-result footer strong {
+    color: var(--accent);
+    font-size: clamp(1.5rem, 4vw, 2.65rem);
+    line-height: 0.85;
+    letter-spacing: -0.06em;
+  }
+
+  .fibrum-result footer span,
+  .fibrum-result footer p {
+    margin: 0;
+    color: var(--muted);
+    font-size: clamp(0.48rem, 0.85vw, 0.65rem);
+    text-transform: uppercase;
+  }
+
+  .fibrum-result footer p b {
+    color: var(--text);
+  }
+
+  .iris-diagram {
+    width: min(100%, 24rem);
+    color: var(--text);
+    font-size: clamp(0.62rem, 1.15vw, 0.82rem);
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .iris-diagram p {
+    margin: 0;
+  }
+
+  .iris-header,
+  .answer {
+    border: 1px solid var(--line);
+    background: var(--background);
+  }
+
+  .iris-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.7rem 0.85rem;
+  }
+
+  .iris-header span,
+  .answer > span {
+    display: block;
+    color: var(--muted);
+    font-family: ui-monospace, monospace;
+    font-size: 0.7em;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .iris-header b {
+    color: var(--accent);
+    font-family: ui-monospace, monospace;
+    font-size: 0.72em;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .knowledge-path {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(0.25rem, 0.8vw, 0.55rem);
+    padding-block: clamp(0.7rem, 1.6vw, 1rem);
+    color: var(--muted);
+    font-family: ui-monospace, monospace;
+    font-size: 0.7em;
+  }
+
+  .knowledge-path span,
+  .knowledge-path strong {
+    padding: 0.2rem 0.4rem;
+    border: 1px solid var(--line);
+    background: var(--background);
+    font-weight: 400;
+    text-align: center;
+  }
+
+  .knowledge-path strong {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .knowledge-path i {
+    color: var(--accent);
+    font-style: normal;
+  }
+
+  .answer {
+    padding: 0.85rem 1rem;
+    border-left: 3px solid var(--accent);
+  }
+
+  .answer > span {
+    margin-bottom: 0.3rem;
+  }
+
+  .answer b {
+    display: block;
+    margin-bottom: 0.65rem;
+    font-weight: 600;
+  }
+
+  .answer p {
+    padding-block: 0.2rem;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.82em;
+  }
+
+  mark {
+    background: transparent;
+    color: var(--accent);
+    font-family: ui-monospace, monospace;
+  }
+</style>

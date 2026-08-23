@@ -65,7 +65,7 @@ const { title, description, year, tags, repo } = project.data;
   header {
     width: min(100%, var(--article-width));
     margin-inline: auto;
-    padding-block: clamp(3rem, 8vw, 5rem);
+    padding: clamp(3rem, 8vw, 5rem) 0 clamp(2rem, 5vw, 3rem);
   }
 
   .meta {
@@ -116,6 +116,10 @@ const { title, description, year, tags, repo } = project.data;
     letter-spacing: -0.02em;
   }
 
+  .content :global(h2:first-child) {
+    margin-top: 0;
+  }
+
   .content :global(h2) {
     font-size: clamp(2rem, 5vw, 2.75rem);
   }
@@ -161,6 +165,7 @@ const { title, description, year, tags, repo } = project.data;
     overflow-x: auto;
     margin: 1.5rem 0;
     padding: 1rem;
+    border-left: 3px solid var(--accent);
     background: var(--surface);
     line-height: 1.5;
   }
@@ -174,6 +179,7 @@ const { title, description, year, tags, repo } = project.data;
     width: 100%;
     border-collapse: collapse;
     font-size: 1rem;
+    font-variant-numeric: tabular-nums;
   }
 
   .content :global(th),
@@ -188,12 +194,18 @@ const { title, description, year, tags, repo } = project.data;
     text-align: right;
   }
 
+  .content :global(th) {
+    background: var(--surface);
+    font-weight: 700;
+  }
+
   .content :global(figure) {
     margin: 2rem 0 2.5rem;
   }
 
   .content :global(figure img) {
     width: 100%;
+    border: 1px solid var(--line);
   }
 
   .content :global(figcaption) {
