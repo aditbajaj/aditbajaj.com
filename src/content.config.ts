@@ -10,6 +10,13 @@ const projects = defineCollection({
 		year: z.number(),
 		tags: z.array(z.string()),
 		repo: z.url().optional(),
+		preview: z
+			.object({
+				src: z.url(),
+				alt: z.string(),
+				fit: z.enum(["cover", "contain"]).default("cover"),
+			})
+			.optional(),
 		order: z.number(),
 	}),
 });

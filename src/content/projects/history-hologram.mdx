@@ -1,39 +1,25 @@
 ---
-
 title: History Hologram
-description: A 3D storytelling engine that turns historical scenes into Pepper's Ghost holograms using an iPad and a clear reflector.
+description: A reusable 3D story engine that projects historical scenes into a Pepper's Ghost display made from an iPad and clear plastic. We built it in a 48 hour hackathon to make history something you could watch unfold instead of only read about.
 year: 2026
 tags:
-- TypeScript
-- React
-- Three.js
+  - TypeScript
+  - React
+  - Three.js
 repo: https://github.com/aditbajaj/history-hologram
-
-order: 2
-
+preview:
+  src: https://raw.githubusercontent.com/aditbajaj/history-hologram/main/screenshots/anzac.gif
+  alt: The ANZAC Cove scene running in the story engine
+order: 4
 ---
 
-History Hologram started at a 48-hour Hack Club hackathon in Sydney.
+## Making history physical
 
-The theme was:
+History Hologram started at a 48-hour hackathon in Sydney, [Hack Club Horizons Crux](https://crux.hackclub.com). The theme was the crux of storytelling, and our team had a slightly awkward mix of hardware, Godot, TypeScript, Go, C and Python experience.
 
-*the crux of storytelling.*
+We also had no hardware tools. Naturally, we built the only hardware project at the event.
 
-Our team composition was slightly cursed.
-
-One of us basically only knew hardware.
-
-Another knew Godot and TypeScript.
-
-I mostly knew Go, C and Python, with a bit of TypeScript.
-
-We also had **no hardware tools whatsoever**.
-
-Naturally, we ended up building the only hardware project at the hackathon.
-
-The idea was to turn historical stories into little Pepper's Ghost holograms.
-
-Instead of reading about something like ANZAC Cove through a wall of text, you could watch a 3D scene unfold with narration, camera movement, audio and models, then project the whole thing into a clear reflector sitting on an iPad.
+The idea was to turn a historical story into a small Pepper's Ghost display. Instead of only reading about ANZAC Cove, you could watch a narrated 3D scene unfold on an iPad and appear inside a clear reflector above it.
 
 <figure>
   <img
@@ -46,51 +32,11 @@ Instead of reading about something like ANZAC Cove through a wall of text, you c
   </figcaption>
 </figure>
 
-## The hardest part was apparently buying plastic
+Finding the reflector material took far longer than expected. We spent hours comparing acrylic, polypropylene and clear film before leaving the venue to buy something that would bend and still reflect enough light. The organisers did not want to leave, so our hardware trip eventually took most of the event with us. It was not efficient, but it gave us a physical display to build for.
 
-Because we were doing a physical Pepper's Ghost display, we needed a clear sheet to build the reflector.
+## A story engine instead of one animation
 
-This somehow became a major engineering problem.
-
-We spent **hours** deciding what plastic to buy.
-
-Acrylic?
-
-Polypropylene?
-
-Clear film?
-
-How thick?
-
-Would it bend?
-
-Would it reflect enough light?
-
-Would it look terrible on an iPad?
-
-Eventually we decided we actually had to leave the venue and buy something.
-
-The organisers did not want to come with us.
-
-At all.
-
-They were comfortable.
-
-We were the only group trying to leave.
-
-And they basically weren't leaving unless they had to come with us.
-
-So after an unreasonable amount of discussion, we dragged everyone into our hardware-acquisition side quest anyway.
-
-Very efficient use of a 48-hour hackathon.
-
-## The software became a tiny scene engine
-
-We did not want to hardcode one ANZAC animation.
-
-So the stories are written in YAML.
-
-Something like:
+We did not want to hardcode one ANZAC scene. Stories are described in YAML as actors and timed moments:
 
 ```yaml
 actors:
@@ -101,35 +47,17 @@ actors:
 moments:
   - at: 0
     label: ARRIVAL
-
   - at: 12
     label: FIRST LIGHT
 ```
 
-Then the same timeline controls:
+The same timeline controls camera movement, models, narration, subtitles, ambience and effects. The React app does not know what ANZAC Cove is. It only knows how to load and play a scene.
 
-* camera movement
-* models
-* narration
-* subtitles
-* ambience
-* effects
+That was the most important technical decision because another story can be made by adding assets and editing YAML rather than writing another frontend.
 
-The React app does not know what ANZAC Cove is.
+## Building the display without a workshop
 
-It just knows how to play a scene.
-
-That was probably the most important design decision, because it meant the project became more than one hackathon demo.
-
-You could make another historical story by adding assets and editing YAML instead of writing another frontend.
-
-## Making the "hologram"
-
-Pepper's Ghost is basically a reflection trick.
-
-Put a clear angled surface over a bright screen and the reflected image appears to float in space.
-
-For a four-sided pyramid, you render the same scene four ways around the centre:
+Pepper's Ghost is a reflection trick. A clear angled surface over a bright screen reflects an image so it appears to float in space. A four-sided reflector needs the same scene rendered in four synchronized directions around the centre of the iPad.
 
 <figure>
   <img
@@ -142,8 +70,6 @@ For a four-sided pyramid, you render the same scene four ways around the centre:
   </figcaption>
 </figure>
 
-So the pipeline became roughly:
-
 ```text
 YAML story
     ↓
@@ -151,70 +77,24 @@ timeline
     ↓
 React + Three.js
     ↓
-3D scene
-    ↓
 four mirrored views
     ↓
-iPad
-    ↓
-clear plastic pyramid
-    ↓
-"hologram"
+iPad + clear reflector
 ```
 
-We also kept a normal 3D mode because developing while constantly balancing a plastic pyramid on an iPad would have been miserable.
+We kept a normal 3D mode for development because balancing a plastic pyramid on an iPad after every change would have been miserable.
 
-## The presentation went... okay
+## Forty-eight hours later
 
-The actual hackathon presentation was not exactly flawless.
+The presentation was not flawless. The venue was too bright, the hologram was hard to see, and the recorded narration did not stay synchronized. The physical effect looked better during testing than it did on stage.
 
-The hologram was hard to see.
+Then we won the GitHub award.
 
-The venue was too bright.
-
-We had recorded narration, but it was not properly synced with the scene.
-
-Some things worked better on our screen than through the reflector.
-
-And after spending all that time building the physical part, the final effect was much less dramatic in the presentation than we wanted.
-
-So when we finished presenting, I was not exactly thinking:
-
-*yeah, we definitely won something.*
-
-Then we somehow won the **GitHub award**.
-
-I was genuinely surprised as hell.
-
-Especially because our project was probably one of the least reliable things to demo in that room.
-
-Everyone else could open a website.
-
-We had:
-
-```text
-web app
-+
-3D engine
-+
-audio
-+
-iPad
-+
-plastic
-+
-room lighting
-+
-hope
-```
-
-But I think that was also what made it fun.
-
-We were the only team trying to make the software physically leave the screen.
+I was genuinely surprised because everyone else could open a website while our demo depended on a web app, a 3D engine, audio, an iPad, plastic, room lighting and hope.
 
 <figure>
   <img
-    src="https://raw.githubusercontent.com/aditbajaj/history-hologram/main/screenshots/physical-setup.jpg"
+    src="https://raw.githubusercontent.com/aditbajaj/history-hologram/main/screenshots/physical-setup.jpeg"
     alt="Physical History Hologram setup using an iPad and clear reflector"
     loading="lazy"
   />
@@ -223,14 +103,4 @@ We were the only team trying to make the software physically leave the screen.
   </figcaption>
 </figure>
 
-By the end of the hackathon, we had a reusable 3D story player, an ANZAC Cove scene, synchronized timelines, four-way reflector rendering and an actual physical display.
-
-It was janky.
-
-The presentation barely showed it properly.
-
-The narration was not synced.
-
-And somehow it still won an award.
-
-Pretty good weekend.
+By the end of the weekend we had a reusable 3D story player, an ANZAC Cove scene, synchronized timelines, four-way rendering and a real physical display. The presentation exposed its rough edges, but the underlying system worked and could tell more than one story.
