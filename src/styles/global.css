@@ -100,7 +100,7 @@ ol {
 }
 
 
-li, td {
+td {
   font-family: var(--mono);
 }
 
