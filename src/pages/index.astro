@@ -57,13 +57,6 @@ const projects = (await getCollection("projects")).sort(
     padding-block: clamp(3.5rem, 8vw, 5.5rem) clamp(2.75rem, 6vw, 4.25rem);
   }
 
-  h1 {
-    margin: 0;
-    font-size: clamp(2.75rem, 8vw, 5.5rem);
-    line-height: 0.95;
-    letter-spacing: -0.055em;
-  }
-
   .intro p {
     max-width: 43rem;
     margin: 1.5rem 0 0;
@@ -76,30 +69,10 @@ const projects = (await getCollection("projects")).sort(
     scroll-margin-top: 2rem;
   }
 
-  h2 {
-    margin: 0;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--line);
-    font-size: 0.8rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  ol {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
   .project-showcase {
     margin-top: clamp(1.5rem, 3vw, 2rem);
   }
 
-  ol {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(2rem, 5vw, 4rem) clamp(1.5rem, 4vw, 3rem);
-  }
 
   .project-link {
     display: block;
@@ -137,11 +110,6 @@ const projects = (await getCollection("projects")).sort(
     font-size: 0.75rem;
   }
 
-  h3 {
-    margin: 0;
-    font-size: clamp(1.35rem, 3vw, 1.75rem);
-    letter-spacing: -0.02em;
-  }
 
   .project-arrow {
     color: var(--accent);
@@ -159,6 +127,7 @@ const projects = (await getCollection("projects")).sort(
   .stack {
     color: #55554f;
     font-size: 0.8rem;
+    font-family: var(--mono);
   }
 
   .project-link > p:not(.stack) {
@@ -170,11 +139,6 @@ const projects = (await getCollection("projects")).sort(
     margin: 0.75rem 0 0;
   }
 
-  @media (max-width: 34rem) {
-    ol {
-      grid-template-columns: 1fr;
-    }
-  }
 
   @media (prefers-reduced-motion: reduce) {
     .project-link,
