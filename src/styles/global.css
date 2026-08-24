@@ -4,6 +4,7 @@
   --text: #1b1b18;
   --muted: #686862;
   --line: #d7d7d0;
+  --image-line: #bcbcb4;
   --link: #075d4c;
   --accent: #176b56;
   color-scheme: light;
@@ -46,8 +47,9 @@ img {
   margin-inline: auto;
 }
 
-p {
+p, li {
   font-family: var(--sans);
+
 }
 
 h1,

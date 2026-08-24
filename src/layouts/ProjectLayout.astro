@@ -165,8 +165,8 @@ const { title, description, year, tags, repo } = project.data;
     overflow-x: auto;
     margin: 1.5rem 0;
     padding: 1rem;
-    border-left: 3px solid var(--accent);
-    background: var(--surface);
+    border: 2px solid var(--line);
+    background: #f1f1ed !important;
     line-height: 1.5;
   }
 
@@ -205,7 +205,8 @@ const { title, description, year, tags, repo } = project.data;
 
   .content :global(figure img) {
     width: 100%;
-    border: 1px solid var(--line);
+    border: 5px solid var(--image-line);
+    box-shadow: 0 1px 3px rgb(27 27 24 / 8%);
   }
 
   .content :global(figcaption) {
