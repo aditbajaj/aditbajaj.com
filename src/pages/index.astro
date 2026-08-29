@@ -18,6 +18,26 @@ const projects = (await getCollection("projects")).sort(
       I like taking things apart, figuring out how they work, and building
       something from what I find.
     </p>
+    <article class="credential" aria-labelledby="credential-title">
+      <img
+        src="https://learn.microsoft.com/en-us/media/learn/certification/badges/microsoft-certified-associate-badge.svg"
+        alt="Microsoft Certified Associate badge"
+        width="120"
+        height="120"
+      />
+      <div>
+        <h2 id="credential-title">
+          Microsoft Certified: Azure AI Apps and Agents Developer Associate
+        </h2>
+        <a
+          href="https://learn.microsoft.com/api/credentials/share/en-us/AditBajaj-5361/A115DCFABF437CED?sharingId=5A7B3253B57E732D"
+          target="_blank"
+          rel="noreferrer"
+        >
+          View credential <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </article>
   </section>
 
   <section class="projects wrap" id="projects" aria-labelledby="projects-title">
@@ -54,14 +74,51 @@ const projects = (await getCollection("projects")).sort(
 
 <style>
   .intro {
-    padding-block: clamp(3.5rem, 8vw, 5.5rem) clamp(2.75rem, 6vw, 4.25rem);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(19rem, 0.8fr);
+    column-gap: clamp(2rem, 5vw, 4rem);
+    align-items: end;
+    padding-block: clamp(2rem, 4vw, 3.25rem);
   }
 
   .intro p {
-    max-width: 43rem;
-    margin: 1.5rem 0 0;
+    max-width: 34rem;
+    margin: 1rem 0 0;
     color: var(--muted);
-    font-size: clamp(1.1rem, 2vw, 1.35rem);
+    font-size: clamp(1rem, 1.6vw, 1.15rem);
+  }
+
+  .credential {
+    display: flex;
+    align-items: center;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    gap: 0.9rem;
+    margin: 0;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .credential img {
+    width: clamp(3.5rem, 6vw, 4.5rem);
+    height: auto;
+    flex: 0 0 auto;
+  }
+
+  .credential h2 {
+    padding: 0;
+    border: 0;
+    font-size: clamp(1rem, 1.6vw, 1.15rem);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  .credential a {
+    display: inline-block;
+    margin-top: 0.45rem;
+    color: var(--link);
+    font-size: 0.85rem;
   }
 
   .projects {
@@ -70,7 +127,11 @@ const projects = (await getCollection("projects")).sort(
   }
 
   .project-showcase {
-    margin-top: clamp(1.5rem, 3vw, 2rem);
+    margin-top: clamp(1rem, 2vw, 1.5rem);
+  }
+
+  .project-link :global(.preview-frame) {
+    aspect-ratio: 2 / 1;
   }
 
 
@@ -107,7 +168,7 @@ const projects = (await getCollection("projects")).sort(
   .project-number {
     color: var(--accent);
     font-family: ui-monospace, monospace;
-    font-size: 0.75rem;
+    font-size: 1rem;
   }
 
 
@@ -132,7 +193,9 @@ const projects = (await getCollection("projects")).sort(
 
   .project-link > p:not(.stack) {
     max-width: 32rem;
-    margin: 0.75rem 0 0;
+    margin: 0.6rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
   }
 
   .stack {
@@ -145,6 +208,23 @@ const projects = (await getCollection("projects")).sort(
     .project-arrow,
     .project-link :global(.preview-frame) {
       transition: none;
+    }
+  }
+
+  @media (max-width: 44rem) {
+    .intro {
+      display: block;
+      padding-block: 2.25rem;
+    }
+
+    .credential {
+      align-items: flex-start;
+      max-width: 34rem;
+      margin-top: 1.25rem;
+    }
+
+    .project-link :global(.preview-frame) {
+      aspect-ratio: 4 / 3;
     }
   }
 </style>
