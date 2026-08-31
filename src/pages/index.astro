@@ -142,14 +142,14 @@ const projects = (await getCollection("projects")).sort(
     text-decoration: none;
   }
 
-  .project-link :global(.preview-frame) {
-    transition: border-color 160ms ease, transform 160ms ease;
+  .project-link {
+    transition: border-color 200ms ease, transform 200ms ease;
   }
 
-  .project-link:hover :global(.preview-frame),
-  .project-link:focus-visible :global(.preview-frame) {
+  .project-link:hover,
+  .project-link:focus-visible {
     border-color: var(--accent);
-    transform: translateY(-0.2rem);
+    transform: translateY(-0.12rem) rotate(0.8deg) scale(1.015);
   }
 
   .project-heading {
