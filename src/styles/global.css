@@ -35,6 +35,13 @@ body {
 a {
   color: inherit;
   text-underline-offset: 0.2em;
+  transition: transform, color, font-weight 0.2s ease;
+}
+
+a:hover:not(.project-link):not(p>a) {
+  color: var(--accent);
+  font-weight: 600;
+  transform: rotate(-1deg) scale(1.05);
 }
 
 img {
@@ -110,10 +117,6 @@ th {
   font-weight: bold;
 }
 
-code {
-  font-family: var(--mono);
-}
-
-a {
+a, code {
   font-family: var(--mono);
 }
