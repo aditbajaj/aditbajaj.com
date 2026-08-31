@@ -26,6 +26,38 @@ const {
     <meta name="twitter:card" content="summary" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
+
+    <!-- Oddly, in development mode, fonts seem to have a delay to load;
+      causing a flash of fallback font. CSS that made visibility none for ~60-70ms fixed this,
+      and the page remained stable. But when deployed to Cloudflare,
+      the page actually now had a flash of blank (white); which also looked bad.
+      If you do nothing when it's deployed, it seems to be perfectly find;
+      so here, on development only, JS is executed to block the page till fonts load.
+      yes, I tried font-display & other stuff, this was the only solution.
+       -->
+    {
+      import.meta.env.DEV && (
+        <>
+          <style is:inline>
+            html[data-fonts-loading] body {
+              visibility: hidden;
+            }
+          </style>
+          <script is:inline>
+            document.documentElement.dataset.fontsLoading = "";
+
+            (async () => {
+              try {
+                await Promise.all([...document.fonts].map((font) => font.load()));
+                await document.fonts.ready;
+              } finally {
+                delete document.documentElement.dataset.fontsLoading;
+              }
+            })();
+          </script>
+        </>
+      )
+    }
   </head>
 
   <body>

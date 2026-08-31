@@ -30,14 +30,8 @@ body {
   background: var(--background);
   color: var(--text);
   line-height: 1.55;
-  /* hide entire page till fonts load so there's no ugly flash */
-  visibility: hidden;
-  animation: reveal 0s 70ms forwards;
 }
 
-@keyframes reveal {
-  to { visibility: visible; }
-}
 
 ::selection {
   background: #cfe2da;
