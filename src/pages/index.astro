@@ -13,31 +13,59 @@ const projects = (await getCollection("projects")).sort(
   description="Projects by Adit Bajaj: FibrumPDF, Iris, Termdash and History Hologram."
 >
   <section class="intro wrap" aria-labelledby="intro-title">
-    <h1 id="intro-title">Adit Bajaj</h1>
-    <p>
-      I like taking things apart, figuring out how they work, and building
-      something from what I find.
-    </p>
+    <div class="lead">
+      <h1 id="intro-title">Adit Bajaj</h1>
+      <p>
+        I like taking things apart, figuring out how they work, and building
+        something from what I find.
+      </p>
+      <p>
+        Lately that has meant a PDF engine in Go and C that runs 77× faster
+        than the parser it replaced, a retrieval system where every answer has
+        to cite the page it came from, and a Geometry Dash clone that renders
+        itself in Braille inside a terminal. I am still at school and mostly
+        self-taught, which mainly means I pick problems that force me to learn
+        the thing I wanted to learn next.
+      </p>
+    </div>
+
     <article class="credential" aria-labelledby="credential-title">
-      <img
-        src="/ms-badge.svg"
-        alt="Microsoft Certified Associate badge"
-        width="120"
-        height="120"
-      />
-      <div>
-        <h2 id="credential-title">
-          (AI-103) Microsoft Certified: Azure AI Apps and Agents Developer Associate
-        </h2>
-        <a
-          href="https://learn.microsoft.com/api/credentials/share/en-us/AditBajaj-5361/A115DCFABF437CED?sharingId=5A7B3253B57E732D"
-          target="_blank"
-          rel="noreferrer"
-        >
-          View credential <span aria-hidden="true">↗</span>
-        </a>
-      </div>
+      <header>
+        <img
+          src="/ms-badge.svg"
+          alt="Microsoft Certified Associate badge"
+          width="120"
+          height="120"
+        />
+        <div>
+          <p class="eyebrow">Microsoft Certified · Associate</p>
+          <h2 id="credential-title">Azure AI Apps and Agents Developer</h2>
+        </div>
+      </header>
+
+      <ul class="scope" aria-label="Areas covered by exam AI-103">
+        <li>Azure AI solution planning</li>
+        <li>Generative AI and agents</li>
+        <li>Computer vision</li>
+        <li>Text analysis</li>
+        <li>Information extraction</li>
+      </ul>
+
+      <a
+        href="https://learn.microsoft.com/api/credentials/share/en-us/AditBajaj-5361/A115DCFABF437CED?sharingId=5A7B3253B57E732D"
+        target="_blank"
+        rel="noreferrer"
+      >
+        Verify AI-103 <span aria-hidden="true">↗</span>
+      </a>
     </article>
+
+    <ul class="signals" aria-label="At a glance">
+      <li>Melbourne</li>
+      <li>Go, Rust, Python, C, TypeScript</li>
+      <li>100+ stars on GitHub</li>
+      <li>GitHub award for most creative project</li>
+    </ul>
   </section>
 
   <section class="projects wrap" id="projects" aria-labelledby="projects-title">
@@ -78,36 +106,88 @@ const projects = (await getCollection("projects")).sort(
 <style>
   .intro {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(19rem, 0.8fr);
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.72fr);
+    align-items: start;
     column-gap: clamp(2rem, 5vw, 4rem);
-    align-items: end;
     padding-top: clamp(2rem, 4vw, 3.25rem);
     padding-bottom: clamp(0.75rem, 1.5vw, 1.25rem);
   }
 
-  .intro p {
+  .lead {
+    grid-column: 1;
+  }
+
+  .lead p {
     max-width: 34rem;
     margin: 1rem 0 0;
+  }
+
+  .lead p:first-of-type {
+    font-size: clamp(1.1rem, 2vw, 1.35rem);
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+
+  .lead p + p {
     color: var(--muted);
-    font-size: clamp(1rem, 1.6vw, 1.15rem);
+    font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+  }
+
+  .signals {
+    display: flex;
+    flex-wrap: wrap;
+    grid-column: 1 / -1;
+    gap: 0.2rem 0;
+    margin: clamp(1.75rem, 4vw, 2.75rem) 0 0;
+    padding: 0.7rem 0 0;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    list-style: none;
+  }
+
+  .signals li {
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  .signals li:not(:last-child)::after {
+    margin-inline: 0.6rem;
+    color: var(--line);
+    content: "\2022";
   }
 
   .credential {
-    display: flex;
-    align-items: center;
     grid-column: 2;
-    grid-row: 1 / span 2;
-    gap: 0.9rem;
-    margin: 0;
-    padding: 0.9rem 1rem;
+    grid-row: 1;
+    margin: 0.4rem 0 0;
+    padding: 1rem 1.1rem 1.1rem;
     border: 1px solid var(--line);
     background: var(--surface);
+  }
+
+  .credential header {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
   }
 
   .credential img {
     width: clamp(3.5rem, 6vw, 4.5rem);
     height: auto;
     flex: 0 0 auto;
+  }
+
+  .credential .eyebrow {
+    margin: 0 0 0.3rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
   }
 
   .credential h2 {
@@ -118,14 +198,41 @@ const projects = (await getCollection("projects")).sort(
     letter-spacing: -0.01em;
   }
 
-  .credential a {
+  /* The five areas exam AI-103 measures, in Microsoft's own order. */
+  .scope {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0;
+    margin: 0.9rem 0 0;
+    padding: 0.75rem 0 0;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    line-height: 1.5;
+    list-style: none;
+  }
+
+  .scope li {
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  .scope li:not(:last-child)::after {
+    margin-inline: 0.45rem;
+    color: var(--line);
+    content: "\00b7";
+  }
+
+  .credential > a {
     display: inline-block;
-    margin-top: 0.45rem;
+    margin-top: 0.8rem;
     color: var(--link);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
   }
 
   .projects {
+    padding-top: clamp(1.5rem, 3vw, 2.25rem);
     padding-bottom: clamp(4rem, 10vw, 7rem);
     scroll-margin-top: 2rem;
   }
@@ -209,10 +316,11 @@ const projects = (await getCollection("projects")).sort(
   }
 
   .project-highlights li {
+    font-family: var(--mono);
     white-space: nowrap;
   }
 
-  .project-highlights li + li::before {
+  .project-highlights li:not(:last-child)::after {
     margin-inline: 0.5rem;
     color: var(--line);
     content: "·";
@@ -245,9 +353,12 @@ const projects = (await getCollection("projects")).sort(
     }
 
     .credential {
-      align-items: flex-start;
       max-width: 34rem;
-      margin-top: 1.25rem;
+      margin-top: 1.75rem;
+    }
+
+    .signals {
+      margin-top: 1.75rem;
     }
 
     .project-link :global(.preview-frame) {
