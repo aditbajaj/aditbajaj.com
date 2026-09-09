@@ -10,7 +10,7 @@ interface Props {
 }
 
 const { project } = Astro.props;
-const { preview } = project.data;
+const { preview, award } = project.data;
 const isFibrumPDF = project.id === "fibrumpdf";
 ---
 
@@ -21,6 +21,7 @@ const isFibrumPDF = project.id === "fibrumpdf";
   ]}
   style={isFibrumPDF ? "background: #fff" : undefined}
 >
+  {award && <p class="award-ribbon">{award}</p>}
   {isFibrumPDF ? (
     <div
       class="fibrum-result"
@@ -106,6 +107,7 @@ const isFibrumPDF = project.id === "fibrumpdf";
 
 <style>
   .preview-frame {
+    position: relative;
     display: grid;
     aspect-ratio: 4 / 3;
     overflow: hidden;
@@ -121,6 +123,21 @@ const isFibrumPDF = project.id === "fibrumpdf";
   .preview-frame::selection,
   .preview-frame :global(*)::selection {
     background: transparent;
+  }
+
+  .award-ribbon {
+    position: absolute;
+    z-index: 1;
+    bottom: 0;
+    left: 0;
+    margin: 0;
+    padding: 0.4rem 0.7rem;
+    background: var(--accent);
+    color: var(--background);
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   img {

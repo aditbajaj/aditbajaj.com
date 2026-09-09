@@ -4,11 +4,13 @@ description: A managed RAG system and cybersecurity chatbot for private company 
 year: 2026
 tags:
   - Python
+  - LangChain
   - RAG
   - React
   - Azure
 highlights:
   - Hybrid retrieval + reranking
+  - Traced and evaluated in LangSmith
   - Page-level citations
   - Tenant-isolated knowledge
 order: 2
@@ -81,6 +83,16 @@ A confident answer without evidence is especially bad in cybersecurity. Iris kee
 If Iris says that privileged accounts require phishing-resistant MFA, the user can open the cited page and check why. The model can still be wrong, but the answer is no longer detached from the evidence it received.
 
 That changed the product from an AI that says things into something closer to search with an explanation on top.
+
+## Knowing whether a change actually helped
+
+Every step in that retrieval path is a decision. How many candidates to fetch, how hard to push diversity, whether HyDE earns the extra generation it costs. Changing any of them changes the answer, and reading a few replies afterwards is not a way to tell whether it changed for the better.
+
+LangChain orchestrates the pipeline, which means LangSmith can trace it without me instrumenting every step by hand. One question expands into the HyDE generation, both retrieval calls, the fusion, the reranker and the final answer, each with its own latency and token cost. Seeing the whole thing laid out made it clear where the time actually went, which was rarely where I assumed.
+
+Evaluation mattered more than tracing. With a set of questions and the passages that should come back for them, a change to retrieval can be scored instead of eyeballed: did the right document still surface, did the answer still cite it, did it get slower. More than one change I was confident about turned out to make no measurable difference, and I would not have known otherwise.
+
+This is also the part of the system that lines up most directly with the observability and evaluation work in AI-103. Tracing, token analytics and detecting ungrounded answers are on the exam because they are what separates a demo from something a company can rely on.
 
 ## Keeping company data separate
 

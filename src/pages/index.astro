@@ -9,24 +9,16 @@ const projects = (await getCollection("projects")).sort(
 ---
 
 <Layout
-  title="Adit Bajaj | Projects"
+  title="Adit Bajaj"
   description="Projects by Adit Bajaj: FibrumPDF, Iris, Termdash and History Hologram."
 >
   <section class="intro wrap" aria-labelledby="intro-title">
     <div class="lead">
       <h1 id="intro-title">Adit Bajaj</h1>
       <p>
-        I like taking things apart, figuring out how they work, and building
-        something from what I find.
-      </p>
-      <p>
-        Lately that has meant a PDF engine in Go and C that runs 77× faster
-        than the parser it replaced, a retrieval system where every answer has
-        to cite the page it came from, and a Geometry Dash clone that renders
-        itself in Braille inside a terminal. I am still at school and mostly
-        self-taught, which mainly means I pick problems that force me to learn
-        the thing I wanted to learn next.
-      </p>
+        Hi! I'm Adit. I'm a high-school student in Melbourne. I've been a self-taught programmer since I was 10 and dabbled in lots of things along the way.
+      </p> 
+      <p class="who">I find this all really interesting, and I'm looking for my first work experience, internship or contribution at a startup. </p>
     </div>
 
     <article class="credential" aria-labelledby="credential-title">
@@ -44,11 +36,10 @@ const projects = (await getCollection("projects")).sort(
       </header>
 
       <ul class="scope" aria-label="Areas covered by exam AI-103">
-        <li>Azure AI solution planning</li>
-        <li>Generative AI and agents</li>
-        <li>Computer vision</li>
-        <li>Text analysis</li>
-        <li>Information extraction</li>
+        <li>Azure AI solution planning, security and optimisation</li>
+        <li>Generative AI, NLP and computer vision</li>
+        <li>AI agents, tools and MCP</li>
+        <li>Hybrid Retrieval Augmented Generation (RAG) pipelines</li>
       </ul>
 
       <a
@@ -59,13 +50,6 @@ const projects = (await getCollection("projects")).sort(
         Verify AI-103 <span aria-hidden="true">↗</span>
       </a>
     </article>
-
-    <ul class="signals" aria-label="At a glance">
-      <li>Melbourne</li>
-      <li>Go, Rust, Python, C, TypeScript</li>
-      <li>100+ stars on GitHub</li>
-      <li>GitHub award for most creative project</li>
-    </ul>
   </section>
 
   <section class="projects wrap" id="projects" aria-labelledby="projects-title">
@@ -101,70 +85,87 @@ const projects = (await getCollection("projects")).sort(
       </ol>
     </div>
   </section>
+
+  <section class="also wrap" aria-labelledby="also-title">
+    <h2 id="also-title">Also on GitHub</h2>
+
+    <ul>
+      <li>
+        <a href="https://github.com/aditbajaj/rich-soup">rich-soup</a>
+        <span>Python</span>
+        <p>
+          Renders a page first, then extracts JSON or Markdown. BeautifulSoup
+          for pages that need JavaScript to exist.
+        </p>
+      </li>
+      <li>
+        <a href="https://github.com/aditbajaj/mtafoubs">mtafoubs</a>
+        <span>Go</span>
+        <p>
+          Moves files to the trash across filesystems on Linux, which the
+          freedesktop spec makes harder than it sounds.
+        </p>
+      </li>
+      <li>
+        <a href="https://github.com/aditbajaj/mupdf-prebuilts">mupdf-prebuilts</a>
+        <span>C</span>
+        <p>
+          Prebuilt MuPDF shared libraries, so installing FibrumPDF does not mean
+          compiling MuPDF first.
+        </p>
+      </li>
+      <li>
+        <a href="https://github.com/aditbajaj/WinHideDot">WinHideDot</a>
+        <span>C#</span>
+        <p>
+          Watches for dotfiles on Windows and hides them, the way Linux has
+          always done it.
+        </p>
+      </li>
+    </ul>
+  </section>
 </Layout>
 
 <style>
+  /* Masthead: identity and credential in one short band, so the project grid
+     starts near the top of the page instead of a screen down. */
   .intro {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.72fr);
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.62fr);
     align-items: start;
     column-gap: clamp(2rem, 5vw, 4rem);
-    padding-top: clamp(2rem, 4vw, 3.25rem);
-    padding-bottom: clamp(0.75rem, 1.5vw, 1.25rem);
+    padding-top: clamp(1.75rem, 3vw, 2.5rem);
   }
 
   .lead {
     grid-column: 1;
   }
 
+  .lead h1 {
+    font-size: clamp(2.75rem, 5.5vw, 4.25rem);
+  }
+
   .lead p {
-    max-width: 34rem;
-    margin: 1rem 0 0;
+    max-width: 30rem;
+    margin: 0.9rem 0 0;
+    font-size: clamp(1.10rem, 2.1vw, 1.3rem);
+    line-height: 1.3;
+    letter-spacing: -0.015em;
   }
 
-  .lead p:first-of-type {
-    font-size: clamp(1.1rem, 2vw, 1.35rem);
-    line-height: 1.4;
-    letter-spacing: -0.01em;
-  }
-
-  .lead p + p {
+  .lead .who {
+    margin-top: 0.75rem;
     color: var(--muted);
-    font-size: clamp(0.95rem, 1.4vw, 1.05rem);
-  }
-
-  .signals {
-    display: flex;
-    flex-wrap: wrap;
-    grid-column: 1 / -1;
-    gap: 0.2rem 0;
-    margin: clamp(1.75rem, 4vw, 2.75rem) 0 0;
-    padding: 0.7rem 0 0;
-    border-top: 1px solid var(--line);
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.02em;
-    line-height: 1.4;
-    list-style: none;
-  }
-
-  .signals li {
-    font-family: var(--mono);
-    white-space: nowrap;
-  }
-
-  .signals li:not(:last-child)::after {
-    margin-inline: 0.6rem;
-    color: var(--line);
-    content: "\2022";
+    font-size: clamp(0.92rem, 1.3vw, 1rem);
+    line-height: 1.5;
+    letter-spacing: 0;
   }
 
   .credential {
     grid-column: 2;
     grid-row: 1;
-    margin: 0.4rem 0 0;
-    padding: 1rem 1.1rem 1.1rem;
+    margin: 0.35rem 0 0;
+    padding: 0.9rem 1rem 1rem;
     border: 1px solid var(--line);
     background: var(--surface);
   }
@@ -176,7 +177,7 @@ const projects = (await getCollection("projects")).sort(
   }
 
   .credential img {
-    width: clamp(3.5rem, 6vw, 4.5rem);
+    width: clamp(3.25rem, 5.5vw, 4rem);
     height: auto;
     flex: 0 0 auto;
   }
@@ -185,7 +186,7 @@ const projects = (await getCollection("projects")).sort(
     margin: 0 0 0.3rem;
     color: var(--muted);
     font-family: var(--mono);
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     letter-spacing: 0.11em;
     text-transform: uppercase;
   }
@@ -198,42 +199,114 @@ const projects = (await getCollection("projects")).sort(
     letter-spacing: -0.01em;
   }
 
-  /* The five areas exam AI-103 measures, in Microsoft's own order. */
+  /* The areas exam AI-103 measures. */
   .scope {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.2rem 0;
-    margin: 0.9rem 0 0;
+    margin: 0.8rem 0 0;
     padding: 0.75rem 0 0;
     border-top: 1px solid var(--line);
     color: var(--muted);
-    font-family: var(--mono);
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     line-height: 1.5;
     list-style: none;
   }
 
   .scope li {
-    font-family: var(--mono);
-    white-space: nowrap;
+    padding-left: 0.9rem;
+    text-indent: -0.9rem;
   }
 
-  .scope li:not(:last-child)::after {
-    margin-inline: 0.45rem;
-    color: var(--line);
-    content: "\00b7";
+  .scope li::before {
+    color: var(--accent);
+    content: "→ ";
   }
 
   .credential > a {
     display: inline-block;
     margin-top: 0.8rem;
     color: var(--link);
-    font-size: 0.8rem;
+    font-size: 0.78rem;
+  }
+
+  /* The tag row is what gets scanned; the line under it is the evidence that
+     stops it reading as a list of words. */
+  .skills {
+    padding-top: clamp(1.75rem, 3.5vw, 2.5rem);
+  }
+
+  .skills dl {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 clamp(1.5rem, 3.5vw, 2.75rem);
+    margin: 0;
+  }
+
+  .skills dl > div {
+    padding: clamp(0.9rem, 1.8vw, 1.15rem) 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .skills dt {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .skills dd {
+    margin: 0.35rem 0 0;
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .skills dl p {
+    margin: 0.3rem 0 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  .also {
+    padding: clamp(2rem, 4vw, 3rem) 0 clamp(4rem, 9vw, 6rem);
+  }
+
+  .also ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 clamp(2rem, 5vw, 4rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .also li {
+    padding: clamp(0.8rem, 1.6vw, 1rem) 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .also li a {
+    color: var(--link);
+    font-size: 0.92rem;
+  }
+
+  .also li span {
+    margin-left: 0.55rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .also li p {
+    margin: 0.25rem 0 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
   }
 
   .projects {
-    padding-top: clamp(1.5rem, 3vw, 2.25rem);
-    padding-bottom: clamp(4rem, 10vw, 7rem);
+    padding-top: clamp(2rem, 4vw, 3rem);
     scroll-margin-top: 2rem;
   }
 
@@ -346,6 +419,12 @@ const projects = (await getCollection("projects")).sort(
     }
   }
 
+  @media (max-width: 62rem) {
+    .skills dl {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
   @media (max-width: 44rem) {
     .intro {
       display: block;
@@ -357,8 +436,9 @@ const projects = (await getCollection("projects")).sort(
       margin-top: 1.75rem;
     }
 
-    .signals {
-      margin-top: 1.75rem;
+    .skills dl,
+    .also ul {
+      grid-template-columns: 1fr;
     }
 
     .project-link :global(.preview-frame) {

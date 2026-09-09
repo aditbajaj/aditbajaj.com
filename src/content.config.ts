@@ -11,6 +11,7 @@ const projects = defineCollection({
 		tags: z.array(z.string()),
 		highlights: z.array(z.string()).min(2).max(4),
 		repo: z.url().optional(),
+		award: z.string().optional(),
 		preview: z
 			.object({
 				src: z.url(),

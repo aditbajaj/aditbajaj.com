@@ -43,7 +43,7 @@ a {
   transition: transform, color, font-weight 0.2s ease;
 }
 
-a:hover:not(.project-link):not(p>a) {
+a:hover:not(.project-link):not(.award-more):not(p>a) {
   color: var(--accent);
   font-weight: 600;
   transform: rotate(-1deg) scale(1.05);
