@@ -92,8 +92,8 @@ h2 {
   margin: 0;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--line);
-  font-size: 1.6rem;
-  letter-spacing: -0.02em;
+  font-size: clamp(2rem, 3.5vw, 2.6rem);
+  letter-spacing: -0.025em;
 }
 
 :focus-visible {

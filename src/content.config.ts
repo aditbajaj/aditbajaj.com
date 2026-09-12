@@ -14,7 +14,7 @@ const projects = defineCollection({
 		award: z.string().optional(),
 		preview: z
 			.object({
-				src: z.url(),
+				src: z.union([z.url(), z.string().startsWith("/")]),
 				alt: z.string(),
 				fit: z.enum(["cover", "contain"]).default("cover"),
 			})
