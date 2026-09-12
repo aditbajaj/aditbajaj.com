@@ -18,7 +18,7 @@ order: 1
 
 A PDF is an annoying format for extraction, yet almost every document system has to deal with it.
 
-FibrumPDF started while I was building [Iris](/projects/iris). PyMuPDF4LLM produced useful structured output, but parsing a large document collection was slow enough to become part of the retrieval pipeline's cost. I wanted to know whether I could keep the useful parts while moving much faster.
+FibrumPDF started while I was building [Iris](/projects/iris/). PyMuPDF4LLM produced useful structured output, but parsing a large document collection was slow enough to become part of the retrieval pipeline's cost. I wanted to know whether I could keep the useful parts while moving much faster.
 
 My first attempts were messy. I profiled Python, moved pieces into Cython, tried dropping into C, and eventually attempted far too much of the parser in pure C. It worked badly and the code was worse.
 

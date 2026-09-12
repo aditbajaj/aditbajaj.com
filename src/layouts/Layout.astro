@@ -11,6 +11,12 @@ const {
   description = "Software projects by Adit Bajaj.",
 } = Astro.props;
 
+// Astro.site is undefined if the config has not been picked up (a dev server
+// started before it was added), and a bare new URL() there takes the whole page
+// down with "Invalid URL". The tags are better skipped than fatal.
+const canonical = Astro.site
+  ? new URL(Astro.url.pathname, Astro.site).href
+  : undefined;
 ---
 
 <!doctype html>
@@ -20,9 +26,12 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
+    <meta name="author" content="Adit Bajaj" />
+    {canonical && <link rel="canonical" href={canonical} />}
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+    {canonical && <meta property="og:url" content={canonical} />}
     <meta name="twitter:card" content="summary" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
@@ -71,7 +80,7 @@ const {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <img src="/github.png" width="20">
+            <img src="/github.png" alt="GitHub" width="20" height="20" />
           </a>
         </nav>
       </div>

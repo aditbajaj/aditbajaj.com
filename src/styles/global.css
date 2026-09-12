@@ -40,12 +40,19 @@ body {
 a {
   color: inherit;
   text-underline-offset: 0.2em;
-  transition: transform, color, font-weight 0.2s ease;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
-a:hover:not(.project-link):not(.award-more):not(p>a) {
+a:hover {
   color: var(--accent);
-  font-weight: 600;
+}
+
+/* The tilt is deliberate, not global: it belongs on standalone links that sit
+   on their own line, never on links inside a paragraph, where changing their
+   size reflows the sentence around them. */
+.wiggle:hover,
+.wiggle:focus-visible {
+  display: inline-block;
   transform: rotate(-1deg) scale(1.05);
 }
 
@@ -97,7 +104,9 @@ h3 {
   letter-spacing: -0.02em;
 }
 
-ol {
+/* Scoped to the showcase: a bare `ol` rule would also catch numbered lists
+   inside project writeups and render them as an unnumbered two-column grid. */
+.project-showcase ol {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -107,7 +116,7 @@ ol {
 }
 
 @media (max-width: 44rem) {
-  ol {
+  .project-showcase ol {
     grid-template-columns: 1fr;
   }
 }
@@ -123,4 +132,15 @@ th {
 
 a, code {
   font-family: var(--mono);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a {
+    transition: color 0.2s ease;
+  }
+
+  .wiggle:hover,
+  .wiggle:focus-visible {
+    transform: none;
+  }
 }

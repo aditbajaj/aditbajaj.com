@@ -43,9 +43,10 @@ const projects = (await getCollection("projects")).sort(
       </ul>
 
       <a
+        class="wiggle"
         href="https://learn.microsoft.com/api/credentials/share/en-us/AditBajaj-5361/A115DCFABF437CED?sharingId=5A7B3253B57E732D"
         target="_blank"
-        rel="noreferrer"
+        rel="noopener noreferrer"
       >
         Verify AI-103 <span aria-hidden="true">↗</span>
       </a>
@@ -91,7 +92,7 @@ const projects = (await getCollection("projects")).sort(
 
     <ul>
       <li>
-        <a href="https://github.com/aditbajaj/rich-soup">rich-soup</a>
+        <a class="wiggle" href="https://github.com/aditbajaj/rich-soup" target="_blank" rel="noopener noreferrer">rich-soup</a>
         <span>Python</span>
         <p>
           Renders a page first, then extracts JSON or Markdown. BeautifulSoup
@@ -99,7 +100,7 @@ const projects = (await getCollection("projects")).sort(
         </p>
       </li>
       <li>
-        <a href="https://github.com/aditbajaj/mtafoubs">mtafoubs</a>
+        <a class="wiggle" href="https://github.com/aditbajaj/mtafoubs" target="_blank" rel="noopener noreferrer">mtafoubs</a>
         <span>Go</span>
         <p>
           Moves files to the trash across filesystems on Linux, which the
@@ -107,7 +108,7 @@ const projects = (await getCollection("projects")).sort(
         </p>
       </li>
       <li>
-        <a href="https://github.com/aditbajaj/mupdf-prebuilts">mupdf-prebuilts</a>
+        <a class="wiggle" href="https://github.com/aditbajaj/mupdf-prebuilts" target="_blank" rel="noopener noreferrer">mupdf-prebuilts</a>
         <span>C</span>
         <p>
           Prebuilt MuPDF shared libraries, so installing FibrumPDF does not mean
@@ -115,7 +116,7 @@ const projects = (await getCollection("projects")).sort(
         </p>
       </li>
       <li>
-        <a href="https://github.com/aditbajaj/WinHideDot">WinHideDot</a>
+        <a class="wiggle" href="https://github.com/aditbajaj/WinHideDot" target="_blank" rel="noopener noreferrer">WinHideDot</a>
         <span>C#</span>
         <p>
           Watches for dotfiles on Windows and hides them, the way Linux has
@@ -227,45 +228,6 @@ const projects = (await getCollection("projects")).sort(
     font-size: 0.78rem;
   }
 
-  /* The tag row is what gets scanned; the line under it is the evidence that
-     stops it reading as a list of words. */
-  .skills {
-    padding-top: clamp(1.75rem, 3.5vw, 2.5rem);
-  }
-
-  .skills dl {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0 clamp(1.5rem, 3.5vw, 2.75rem);
-    margin: 0;
-  }
-
-  .skills dl > div {
-    padding: clamp(0.9rem, 1.8vw, 1.15rem) 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .skills dt {
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 0.66rem;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-  }
-
-  .skills dd {
-    margin: 0.35rem 0 0;
-    font-size: 0.92rem;
-    line-height: 1.45;
-  }
-
-  .skills dl p {
-    margin: 0.3rem 0 0;
-    color: var(--muted);
-    font-size: 0.82rem;
-    line-height: 1.45;
-  }
-
   .also {
     padding: clamp(2rem, 4vw, 3rem) 0 clamp(4rem, 9vw, 6rem);
   }
@@ -323,9 +285,6 @@ const projects = (await getCollection("projects")).sort(
     display: block;
     height: 100%;
     text-decoration: none;
-  }
-
-  .project-link {
     transition: border-color 200ms ease, transform 200ms ease;
   }
 
@@ -370,6 +329,7 @@ const projects = (await getCollection("projects")).sort(
   }
 
   .stack {
+    margin: 0.6rem 0 0;
     color: #55554f;
     font-size: 0.8rem;
     font-family: var(--mono);
@@ -406,22 +366,12 @@ const projects = (await getCollection("projects")).sort(
     line-height: 1.45;
   }
 
-  .stack {
-    margin: 0.6rem 0 0;
-  }
-
 
   @media (prefers-reduced-motion: reduce) {
     .project-link,
     .project-arrow,
     .project-link :global(.preview-frame) {
       transition: none;
-    }
-  }
-
-  @media (max-width: 62rem) {
-    .skills dl {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
@@ -436,7 +386,6 @@ const projects = (await getCollection("projects")).sort(
       margin-top: 1.75rem;
     }
 
-    .skills dl,
     .also ul {
       grid-template-columns: 1fr;
     }
