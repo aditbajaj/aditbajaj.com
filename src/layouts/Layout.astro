@@ -89,6 +89,22 @@ const canonical = Astro.site
     <main>
       <slot />
     </main>
+
+    <footer class="site-footer">
+      <div class="wrap footer-inner">
+        <p>Adit Bajaj &middot; Melbourne</p>
+        <nav aria-label="Contact">
+          <a href="mailto:adit.bajaj04@gmail.com">adit.bajaj04@gmail.com</a>
+          <a
+            href="https://github.com/aditbajaj"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub
+          </a>
+        </nav>
+      </div>
+    </footer>
   </body>
 </html>
 
@@ -125,5 +141,45 @@ const canonical = Astro.site
     color: var(--text);
     font-size: 1rem;
     font-weight: 700;
+  }
+
+  /* The page used to stop dead after the last section. This gives it a floor,
+     and a second place to find the address without scrolling back up. */
+  .site-footer {
+    margin-top: auto;
+    border-top: 1px solid var(--line);
+  }
+
+  .footer-inner {
+    display: flex;
+    min-height: 4rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+    padding-block: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .footer-inner p {
+    margin: 0;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .footer-inner nav {
+    gap: clamp(1rem, 2.5vw, 1.75rem);
+  }
+
+  .footer-inner a {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .footer-inner a:hover,
+  .footer-inner a:focus-visible {
+    color: var(--accent);
   }
 </style>

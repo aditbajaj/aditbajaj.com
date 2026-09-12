@@ -295,6 +295,14 @@ const projects = (await getCollection("projects")).sort(
   }
 
 
+  /* The card is an <a>, so it must pin its own colour: otherwise the global
+     a:hover tints every bit of text inside it that has no colour of its own. */
+  .project-link,
+  .project-link:hover,
+  .project-link:focus-visible {
+    color: var(--text);
+  }
+
   .project-link {
     display: block;
     height: 100%;
@@ -343,34 +351,34 @@ const projects = (await getCollection("projects")).sort(
   }
 
   .stack {
-    margin: 0.6rem 0 0;
-    color: #55554f;
-    font-size: 0.8rem;
+    margin: 0.7rem 0 0;
+    color: var(--muted);
     font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
+  /* The evidence for the sentence above it, so it outranks the stack line.
+     Chips rather than dot-separated text: a wrapped separator used to dangle
+     at the end of a line. */
   .project-highlights {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.2rem 0;
+    gap: 0.35rem;
     margin: 0.85rem 0 0;
     padding: 0;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    line-height: 1.4;
     list-style: none;
   }
 
   .project-highlights li {
+    padding: 0.2rem 0.45rem;
+    border: 1px solid var(--line);
+    color: var(--text);
     font-family: var(--mono);
+    font-size: 0.72rem;
+    line-height: 1.4;
     white-space: nowrap;
-  }
-
-  .project-highlights li:not(:last-child)::after {
-    margin-inline: 0.5rem;
-    color: var(--line);
-    content: "·";
   }
 
   .project-link > p:not(.stack) {

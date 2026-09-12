@@ -25,6 +25,9 @@
 }
 
 body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
   margin: 0;
   min-width: 20rem;
   background: var(--background);
@@ -90,7 +93,7 @@ h2 {
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--line);
   font-size: 1.6rem;
-  letter-spacing: 0.08em;
+  letter-spacing: -0.02em;
 }
 
 :focus-visible {
