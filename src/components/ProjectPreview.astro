@@ -19,7 +19,6 @@ const isFibrumPDF = project.id === "fibrumpdf";
     "preview-frame",
     { schematic: !preview && !isFibrumPDF, fibrum: isFibrumPDF },
   ]}
-  style={isFibrumPDF ? "background: #fff" : undefined}
 >
   {award && <p class="award-ribbon">{award}</p>}
   {isFibrumPDF ? (
@@ -113,7 +112,7 @@ const isFibrumPDF = project.id === "fibrumpdf";
     overflow: hidden;
     place-items: center;
     border: 1px solid var(--image-line);
-    box-shadow: 0 1px 3px rgb(27 27 24 / 8%);
+    box-shadow: 0 1px 3px var(--shadow);
     background: var(--surface);
     user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -152,7 +151,7 @@ const isFibrumPDF = project.id === "fibrumpdf";
 
   img.contain {
     padding: clamp(1rem, 3vw, 2rem);
-    background: #fff;
+    background: var(--paper);
     object-fit: contain;
   }
 
@@ -163,7 +162,7 @@ const isFibrumPDF = project.id === "fibrumpdf";
 
   .preview-frame.fibrum {
     padding: clamp(0.85rem, 2.25vw, 1.5rem);
-    background: #fff;
+    background: var(--paper);
   }
 
   .fibrum-result {

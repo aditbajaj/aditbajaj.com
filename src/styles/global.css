@@ -5,17 +5,66 @@
 :root {
   --background: #f7f7f4;
   --surface: #ecece7;
+  --paper: #fff;
+  --code-bg: #f1f1ed;
   --text: #1b1b18;
   --muted: #686862;
   --line: #d7d7d0;
   --image-line: #bcbcb4;
   --link: #075d4c;
   --accent: #176b56;
+  --selection: #cfe2da;
+  --shadow: rgb(27 27 24 / 8%);
+  --icon-filter: none;
+  --moon-display: block;
+  --sun-display: none;
   color-scheme: light;
   --serif: 'Instrument Serif', serif;
   --sans: 'IBM Plex Sans', sans-serif;
   --mono: 'IBM Plex Mono', monospace;
   font-synthesis: none;
+}
+
+/* No stored choice follows the system; the toggle stamps data-theme on <html>
+   only when the choice differs from it. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  --background: #22242a;
+    --surface: #2c2e35;
+    --paper: #282a30;
+    --code-bg: #2c2e35;
+    --text: #e8e8e8;
+    --muted: #bfbfbf;
+    --line: #444746;
+    --image-line: #4d5156;
+    --link: #a3d9c6;
+    --accent: #8ccfb6;
+    --selection: #3c4a45;
+    --shadow: rgb(0 0 0 / 30%);
+    --icon-filter: invert(1);
+    --moon-display: none;
+    --sun-display: block;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --background: #22242a;
+  --surface: #2c2e35;
+  --paper: #282a30;
+  --code-bg: #2c2e35;
+  --text: #e8e8e8;
+  --muted: #bfbfbf;
+  --line: #444746;
+  --image-line: #4d5156;
+  --link: #a3d9c6;
+  --accent: #8ccfb6;
+  --selection: #3c4a45;
+  --shadow: rgb(0 0 0 / 30%);
+  --icon-filter: invert(1);
+  --moon-display: none;
+  --sun-display: block;
+  color-scheme: dark;
 }
 
 *,
@@ -37,7 +86,7 @@ body {
 
 
 ::selection {
-  background: #cfe2da;
+  background: var(--selection);
 }
 
 a {
@@ -145,5 +194,19 @@ a, code {
   .wiggle:hover,
   .wiggle:focus-visible {
     transform: none;
+  }
+}
+
+/* Code blocks carry both shiki themes; dark swaps each token to its dark colour.
+   The block background comes from --code-bg instead. */
+:root[data-theme="dark"] .astro-code,
+:root[data-theme="dark"] .astro-code span {
+  color: var(--shiki-dark) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .astro-code,
+  :root:not([data-theme="light"]) .astro-code span {
+    color: var(--shiki-dark) !important;
   }
 }
