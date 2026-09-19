@@ -1,4 +1,5 @@
 ---
+import mailIcon from "lucide-static/icons/mail.svg?raw";
 import "../styles/global.css";
 
 interface Props {
@@ -83,8 +84,16 @@ const canonical = Astro.site
       <div class="wrap header-inner">
         <a class="wordmark" href="/" aria-label="Adit Bajaj, home">AB</a>
         <nav aria-label="Primary navigation">
-          <a href="/#projects">Projects</a>
-          <a href="mailto:adit.bajaj04@gmail.com">Contact</a>
+          <a
+            class="email"
+            href="mailto:adit.bajaj04@gmail.com"
+            aria-label="Email adit.bajaj04@gmail.com"
+          >
+            <Fragment set:html={mailIcon} />
+            <span class="email-reveal" aria-hidden="true">
+              <span class="email-handle">adit.bajaj04@gmail.com</span>
+            </span>
+          </a>
           <a
             href="https://github.com/aditbajaj"
             target="_blank"
@@ -183,6 +192,58 @@ const canonical = Astro.site
     opacity: 0.85;
   }
 
+  /* The address is worth an icon rather than the word "Contact", but half of
+     it is spam bait, so only the handle ever renders. The mailto carries the
+     rest. */
+  .email {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .email :global(svg) {
+    width: 19px;
+    height: 19px;
+    flex: 0 0 auto;
+    stroke-width: 1.75;
+  }
+
+  /* 0fr to 1fr rather than a max-width guess: the track resolves to whatever
+     the handle actually measures, so the reveal ends exactly when it is
+     uncovered instead of coasting to a number picked by hand. */
+  .email-reveal {
+    display: grid;
+    grid-template-columns: 0fr;
+    transition: grid-template-columns 240ms ease;
+  }
+
+  .email:hover .email-reveal,
+  .email:focus-visible .email-reveal,
+  .email:active .email-reveal {
+    grid-template-columns: 1fr;
+  }
+
+  .email-handle {
+    overflow: hidden;
+    padding-left: 0;
+    opacity: 0;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    transition: opacity 200ms ease 40ms, padding-left 240ms ease;
+  }
+
+  .email:hover .email-handle,
+  .email:focus-visible .email-handle,
+  .email:active .email-handle {
+    padding-left: 0.45rem;
+    opacity: 1;
+  }
+
+  .email-handle i {
+    color: var(--muted);
+    font-style: normal;
+  }
+
   .theme-toggle {
     display: grid;
     place-items: center;
@@ -260,5 +321,12 @@ const canonical = Astro.site
   .footer-inner a:hover,
   .footer-inner a:focus-visible {
     color: var(--accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .email-reveal,
+    .email-handle {
+      transition: none;
+    }
   }
 </style>
