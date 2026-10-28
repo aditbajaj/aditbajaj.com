@@ -16,7 +16,17 @@ preview:
   src: https://raw.githubusercontent.com/aditbajaj/history-hologram/main/screenshots/anzac.gif
   alt: The ANZAC Cove scene running in the story engine
 order: 4
+category: "STORY → SOMETHING PHYSICAL"
+summary: "48 hours, an iPad, clear plastic, and a reusable 3D story engine. The only hardware project at a hackathon where we had no hardware tools."
+deck: "A reusable story engine, an iPad and some clear plastic. Built in 48 hours; held together by software, reflection, and a little optimism."
+stack: "TYPESCRIPT / REACT / THREE.JS"
+stats:
+  - ["48 h", "HACKATHON BUILD"]
+  - ["4 views", "ONE SHARED SCENE"]
+  - ["GitHub award", "MOST CREATIVE PROJECT"]
 ---
+
+import ReflectorExhibit from "../../components/exhibits/ReflectorExhibit.astro";
 
 ## Making history physical
 
@@ -109,3 +119,37 @@ I was genuinely surprised because everyone else could open a website while our d
 </figure>
 
 By the end of the weekend we had a reusable 3D story player, an ANZAC Cove scene, synchronized timelines, four-way rendering and a real physical display. The presentation exposed its rough edges, but the underlying system worked and could tell more than one story.
+
+## Four outputs, one world
+
+<ReflectorExhibit />
+
+I render one canvas and mirror its `captureStream()` to the other three sides. That is a very different cost from rendering four independent 3D worlds. The output changes; the scene stays shared.
+
+That wasn't the first version. My first reflector view ran four separate WebGL renderers, one per face, each with its own copy of a heavy car model. My commit message for fixing it calls four renderers ridiculous, and it was. Rendering a single 30 fps canvas and mirroring its stream across the other three faces fixed it. I also trimmed the texture payload on that car model, which I'd been treating as free until I looked at what it weighed.
+
+## One clock instead of eighteen
+
+The narration, effects and ambience started life as separate audio clips, each playing on its own, and keeping eighteen of them in sync with a timeline you can pause and drag was a losing game. Seek to the middle and some of them landed in the wrong place, and the narration drifting away from the picture is the kind of thing we saw on stage.
+
+The fix was to stop synchronising them. I mastered narration and effects into one soundtrack per story, wrote the subtitle cues out from the speech boundaries, and made the timeline the only clock. Pausing and seeking now move one thing instead of eighteen, and the audio can't disagree with the picture because there's only one of it. The old pile of clips would have been fine for one demo and impossible for a second story.
+
+A few smaller cleanups came with it. Scene files are validated with ArkType, so a typo in a YAML file fails loudly at load time instead of as a model that's silently missing. Loading and caching use `ky`, `swr` and `p-memoize` rather than the loader I'd hand-rolled, because maintaining that myself was daft. And I wrote a small tool to strip a node out of a `.glb` and bake the result into the asset, after I got tired of one car model bringing its own floor along.
+
+## Time, not accumulated frame state
+
+The timeline computes actor and camera poses from scene time. Actor cues replay from the start so additive and absolute transforms compose; transitions interpolate with smoothstep. Camera cues carry position, target and field of view.
+
+This makes seeking more than dragging a progress bar: the renderer must be able to reconstruct what the scene should look like at a chosen time, without needing every previous frame to have played.
+
+`SceneWorld` selects the chapter and shot, builds an actor-parent graph, and renders lights, actors and postprocessing. During playback, the camera follows the timeline; paused interactive mode yields to OrbitControls.
+
+<div class="technical-note">
+  <p class="eyebrow">THE SOFTWARE WASN’T THE WHOLE DEMO</p>
+  <p>Pepper’s Ghost is a reflection, not a floating hologram. Room lighting, the angle of the plastic, screen brightness and narration timing all become part of whether the system works in front of people.</p>
+</div>
+
+<div class="source-evidence">
+  SOURCE TRAIL / <a href="https://github.com/aditbajaj/history-hologram/blob/main/src/lib/scene/timeline.ts" target="_blank" rel="noopener noreferrer">Time-derived poses ↗</a> · <a href="https://github.com/aditbajaj/history-hologram/blob/main/src/components/scene/SceneWorld.tsx" target="_blank" rel="noreferrer">Scene & camera director ↗</a><br />
+  <a href="https://github.com/aditbajaj/history-hologram" target="_blank" rel="noopener noreferrer">Scene format & reflector architecture ↗</a>
+</div>

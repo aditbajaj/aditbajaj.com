@@ -1,127 +1,169 @@
 ---
 title: Iris
-description: A managed RAG system and cybersecurity chatbot for private company knowledge, built from open-source components and deployable in Azure.
+description: A cybersecurity and compliance chatbot where every answer cites the document and page it came from. I built it with my dad, then watched the big cloud providers ship the same thing.
 year: 2026
 tags:
   - Python
-  - LangChain
-  - RAG
-  - React
-  - Azure
+  - FastAPI
+  - Qdrant
+  - OpenSearch
+  - Svelte
 highlights:
-  - Hybrid retrieval + reranking
-  - Traced and evaluated in LangSmith
+  - HyDE + dense and keyword fusion
+  - Deleted the reranker after measuring it
   - Page-level citations
-  - Tenant-isolated knowledge
+  - Tenant isolation in four layers
 preview:
   src: /iris.webp
   alt: Iris answering a question about access reviews, with inline citations beside the passages they came from
 order: 2
+category: "RETRIEVAL → EVIDENCE"
+summary: "I over-engineered a RAG chatbot for months, learned more than I expected, and deleted the reranker everybody told me to add."
+deck: "The model was the easy part. Finding the right evidence, keeping each customer's documents separate, and making every answer checkable was the project."
+stack: "PYTHON / FASTAPI / QDRANT / OPENSEARCH / SVELTE"
+stats:
+  - ["46s → 0.8s", "MMR OVER 400 CANDIDATES"]
+  - ["36 of 38s", "SPENT IN THE RERANKER I DELETED"]
+  - ["66 tests", "UNDER A SECOND, NOTHING RUNNING"]
 ---
 
-## Why the chatbot needed its own infrastructure
+import RetrievalExhibit from "../../components/exhibits/RetrievalExhibit.astro";
 
-Iris started because my dad had a business idea. He wanted a cybersecurity chatbot where companies could upload their internal documents, ask questions, and get answers based on their own material.
+## Why it existed
 
-He asked if I could help code it. I said yes before I properly understood RAG, vector databases, reranking or multi-tenancy.
+My dad had a business idea. Companies get a constant stream of cybersecurity and compliance questions, and a general chatbot is a bad way to answer them. It will invent a control number without blinking, it can't tell you where anything came from, and it knows nothing about your own policies. When an answer ends up in front of an auditor, "probably right, source unknown" is worth nothing.
 
-When I built Iris, the production RAG tooling I encountered was fragmented. The useful parts were largely open source or early stage, models hallucinated often, citations were not a standard part of the answer, and private company documents could not simply be sent to whichever hosted service was convenient.
+So the plan was a RAG product: ground every answer in the real standards, let a company add its own documents next to them, put a page-numbered citation on every claim, and keep each customer's material completely separate. He asked if I could build it. I said yes before I knew what reranking or multi-tenancy meant.
 
-The chatbot was the visible part. Making it useful for a company required the rest of the system: document ingestion, tenant isolation, hybrid retrieval, reranking, grounded generation, page-level citations and deployment inside the company's Azure environment.
+I worked on it every day after school for months. It searched Qdrant and OpenSearch at the same time, fused the results, cited every source, and had row-level security, a fine-tuned model and evaluation in LangSmith. It was roughly 8,000 lines of code, and my statistics test went badly that term. I'd say it was worth it anyway, but I'd also say that to be polite to my past self.
 
-Iris was my attempt to make that entire path one managed system. The simple version sounded like this:
+Then Microsoft, Amazon and Google shipped managed RAG, hybrid retrieval and per-tenant indexes included, a few clicks and done, and better than one person can do it. I never asked a single customer whether they wanted it. The market I'd imagined wasn't really there, and we drifted off it. I still got a lot out of it: the retrieval problem turned out to be genuinely interesting, it got me through the Azure AI-103 exam, and it's the reason [FibrumPDF](/projects/fibrumpdf/) exists.
 
-```text
-company documents
-       ↓
-      Iris
-       ↓
-ask a question
-       ↓
-answer with sources
-```
+The first version was LangChain over a local vector store. An LLM read a catalogue of documents and picked which ones to search before retrieval even started, and every document type had its own chunk size: 700 characters for NIST, 850 for ISO, 1,400 for Veeam manuals. The rewrite is what I'll describe, because it's the one I'd defend.
 
-Almost the entire project ended up inside that `Iris` box.
-
-## Finding the right information
-
-The first search system used embeddings. Semantic search was good at finding passages with similar meaning, but cybersecurity documents contain exact identifiers such as `AC-2`, `CIS 5.2`, product names and CVEs. Similar meaning is not enough when the exact term matters.
-
-I added BM25 through OpenSearch for keyword retrieval and kept Qdrant for dense search. Reciprocal rank fusion combines the two rankings without comparing scores that mean completely different things.
-
-HyDE improves the dense side by generating a hypothetical answer and embedding that instead of only embedding the question. The generated text is never shown to the user or treated as fact. It is just a search query shaped more like the passage Iris needs to find.
-
-The next problem was repetition. Five highly relevant passages can still contain one useful idea repeated five times. Maximal marginal relevance reduces near-duplicates, source limits stop one document from taking over the context, and a cross-encoder reranks the smaller candidate set against the original question.
-
-The final retrieval path became:
+## One question, end to end
 
 ```text
 question
-   ↓
-HyDE
-   ↓
-┌─────────────────────┐
-│                     │
-↓                     ↓
-dense search       BM25 search
-Qdrant             OpenSearch
-│                     │
-└──────────┬──────────┘
-           ↓
-reciprocal rank fusion
-           ↓
-diversity + source limits
-           ↓
-cross-encoder reranking
-           ↓
-answer + citations
+├── embed it once, only to check the HyDE cache
+├── HyDE: a small model writes a plausible fake answer
+├── embed the fake answer
+├── four concurrent searches
+│     tenant scope:  75 dense (Qdrant)  +  25 keyword (OpenSearch)
+│     global scope:  75 dense           +  25 keyword
+├── fuse dense with keyword inside each scope, then fuse the two scopes
+├── embed the keyword-only hits
+├── maximal marginal relevance, down to 50
+├── split 8 slots between the scopes by how close each one got
+└── at most 2 per document, merged by rank
 ```
 
-This is more work than calling a language model, but retrieval decides whether the model ever sees the right information.
+Two model calls leave the machine per question, usually one, because HyDE is normally a cache hit. The embedder runs locally. Retrieval takes about two seconds.
 
-## Answers that can be checked
+### Why not just embed the question
 
-A confident answer without evidence is especially bad in cybersecurity. Iris keeps the document name and page number attached to each retrieved passage, numbers the passages sent to the model, and asks for inline citations.
+A question and its answer aren't written alike. "How do we handle a breach?" and "The organization implements an incident handling capability that includes preparation, detection and analysis, containment, eradication and recovery" are about the same thing, and their embeddings aren't close. So a small model writes a short, plausible, probably wrong answer first, and that gets embedded instead. The guess doesn't need to be right. It needs to sound like an answer and use an answer's vocabulary. That's HyDE, and it's most of the project's name.
 
-If Iris says that privileged accounts require phishing-resistant MFA, the user can open the cited page and check why. The model can still be wrong, but the answer is no longer detached from the evidence it received.
+HyDE costs a model call per question and throws the output away, so I cache it. Caching on the question string almost never hit, because nobody types the same thing twice. Caching on the question's *embedding* hits constantly: "how do we handle incidents", "what's the incident response process" and "walk me through IR" all land in the same neighbourhood, and one rough passage serves all three. The cache is its own Qdrant collection.
 
-That changed the product from an AI that says things into something closer to search with an explanation on top.
+### Fusing in a specific order
 
-## Knowing whether a change actually helped
+Dense similarity lives in roughly -1 to 1 and BM25 scores are unbounded, so adding them just means whichever store emits bigger numbers wins. Reciprocal rank fusion throws the scores away and adds `1 / (k + rank)` per list, with `k = 60` so that one very confident store can't bulldoze the other.
 
-Every step in that retrieval path is a decision. How many candidates to fetch, how hard to push diversity, whether HyDE earns the extra generation it costs. Changing any of them changes the answer, and reading a few replies afterwards is not a way to tell whether it changed for the better.
+The order matters as much as the method. Every question searches two scopes, the customer's own uploads and a shared reference corpus. Fuse all four rankings at once and the reference corpus wins on volume: it holds thousands of chunks and a new customer holds forty. So I fuse dense with keyword inside each scope first, then fuse the two scope results, and size stops being a vote.
 
-LangChain orchestrates the pipeline, which means LangSmith can trace it without me instrumenting every step by hand. One question expands into the HyDE generation, both retrieval calls, the fusion, the reranker and the final answer, each with its own latency and token cost. Seeing the whole thing laid out made it clear where the time actually went, which was rarely where I assumed.
+MMR then compares candidates against each other, which means every candidate needs a vector. Dense hits arrive carrying theirs. Keyword-only hits have none, so they get embedded in one batch first. Skip that, and they look maximally different from everything, and MMR happily picks all of them.
 
-Evaluation mattered more than tracing. With a set of questions and the passages that should come back for them, a change to retrieval can be scored instead of eyeballed: did the right document still surface, did the answer still cite it, did it get slower. More than one change I was confident about turned out to make no measurable difference, and I would not have known otherwise.
+## The reranker I deleted
 
-This is also the part of the system that lines up most directly with the observability and evaluation work in AI-103. Tracing, token analytics and detecting ungrounded answers are on the exam because they are what separates a demo from something a company can rely on.
+Everybody recommends a cross-encoder reranker, so I added one and it sat in the pipeline for months, because a stage that popular must be earning its place. It wasn't. When I finally measured it on three real questions:
 
-## Keeping company data separate
+| | no reranker | with reranker |
+| --- | --- | --- |
+| clause 5.2 | 0.23s, found it | 43.0s, found it |
+| access review evidence | 0.23s, found it | 45.8s, found it |
+| incident response vs NIST | 0.20s, **2/2** | 52.1s, **1/2** |
 
-The other hard requirement was multi-tenancy. A document uploaded by one company must never appear in another company's answer.
+It cost 36 of the 38 seconds a question took, and it was worse than useless on the question it was meant to help. Asked whether the company's policy met ISO 27001 clause 5.2, dense search and keyword search each ranked the policy's own commitments paragraph first, independently, and MMR kept it there. The reranker pushed it to fourteenth and out of the answer, so the assessment said there was no evidence of board approval from a policy whose first page says it was approved by the Board.
 
-Documents, conversations and database records are scoped to a tenant and user. PostgreSQL row-level security enforces that boundary at the database layer, rather than relying entirely on every query having the correct `WHERE` clause. Search indexes are separated, and Microsoft Entra ID carries the user and tenant identity through documents, chats and retrieval.
+The reason is the same one HyDE exists for. A cross-encoder scores how well a passage answers the query as written. The question says "ISO 27001" and "clause 5.2". A published guide says those words on every page, and a company's own policy never says them at all. So the expensive model behaved like a slow BM25 and ranked the standard above the evidence. Two retrievers agreeing was the better signal all along.
 
-Iris can search two scopes at once: private company knowledge and shared cybersecurity material. Both can contribute to an answer without combining every customer's documents into one searchable bucket.
+### Splitting the evidence budget
 
-## From chatbot to managed system
+I used to give each scope half the slots, and that wasted the budget in both directions. Asked for evidence that quarterly access reviews happened on time, which is a question about one company's records, four of the eight passages were an AWS whitepaper, an ATT&CK paper and two pages of SP 800-53. None were cited and none could have been.
 
-By the end, the system looked roughly like this:
+Now the split follows the highest dense similarity each scope reached. Those are the one pair of numbers in the pipeline that genuinely share a scale: same model, same vector space, same query. Fusion ranks don't, and neither did the reranker's scores, which is most of why it had to go.
 
-```text
-frontend
-   ↓
-FastAPI
-   ↓
-┌────────────┬─────────┬────────────┐
-↓            ↓         ↓            ↓
-PostgreSQL   Qdrant    OpenSearch   LLM
-app data     vectors   BM25         answers
-```
+| question | tenant top | reference top | slots |
+| --- | ---: | ---: | :---: |
+| evidence access reviews happen on time | 0.822 | 0.764 | 5 / 3 |
+| does our policy meet clause 5.2 | 0.768 | 0.829 | 3 / 5 |
+| what does SP 800-53 require | 0.791 | 0.898 | 2 / 6 |
+| are Tier 1 suppliers assessed on time | 0.755 | 0.654 | 6 / 2 |
 
-The backend streams responses to the frontend. FastAPI and LangChain handle the application and model orchestration, PostgreSQL stores users, documents and conversations, Qdrant handles dense retrieval, and OpenSearch handles keywords. These components are open source and can run inside infrastructure the company controls.
+Neither scope ever drops below two slots. A question the customer's documents can't answer still has to be able to say so, and that's only visible if some of their documents were actually looked at.
 
-Iris is also why [FibrumPDF](/projects/fibrumpdf/) exists. PDF ingestion became the bottleneck once document collections grew, so I pulled that problem apart and built a faster parser in Go and C. It preserves headings, lists, tables and page information before Iris indexes the document.
+## Grounding the answer
 
-Iris took months because every simple box had failure modes behind it. The language model ended up being one of the less interesting parts. Finding the right evidence, keeping it private and showing where it came from was the actual project.
+Retrieval picks the passages. This part decides what the model's allowed to do with them, and it was the half I got wrong for longest.
+
+Every passage in the prompt is headed `ORGANISATION DOCUMENT` or `REFERENCE STANDARD` before its filename. Only the first kind is evidence of what the customer does; the second only shows what a framework asks for. Without the label the model can't tell an uploaded policy from an implementation guide *about* the same standard, and it will cheerfully cite the guide for a claim about your company.
+
+The evidence block also says plainly what came back, including when no customer documents did. That's the difference between "the policy doesn't say" and "no part of the policy was retrieved", and a model with no way to tell them apart writes the first when it means the second.
+
+Models also love writing `[36]` when the passage they're reading is about a control numbered 36. Nothing was retrieved under 36, so the number points at nothing, and a reader can't tell that from a real citation. So citations are rewritten on the way out: a marker naming a passage that doesn't exist gets dropped, and `[1, 3]` becomes `[1][3]` so every number is one thing to click. It holds back any tail that could still turn out to be half a marker, so a citation split across two stream frames is still caught.
+
+## Chunking
+
+Extraction is FibrumPDF, which I wrote for exactly this. The first version used pypdf, which returns words in roughly reading order with the layout thrown away. About half of SP 800-53 is control tables, and they came out as unpunctuated word salad. Having real blocks (headings, paragraphs, lists, tables) is what makes any of this possible:
+
+- **Sections are boundaries.** Level 1 and 2 headings start a chunk and repeat at the top of every chunk inside that section. "The organization shall implement..." on its own retrieves against nothing, because it never says what it's regulating.
+- **Tables are atomic.** A table is its own chunk. If it's too big, it splits on row boundaries with the header repeated on every piece, because a fragment of a control table without its header is just numbers.
+- **Page furniture is dropped.** Headers, footers and watermarks poison a chunk twice: they dilute it, and a watermark read as a *heading* gets repeated into the breadcrumb of everything beneath it. The top-scoring reference passage for one question was the foreword of a preview-watermarked standard, headed `iTeh STANDARD PREVIEW`. I detect it instead of listing it: a short line that appears on a third of a document's pages is furniture no matter who published it, with digits normalised so `PAGE 16` through `PAGE 373` collapse into one key.
+- **Ids are derived.** A chunk's id is a `uuid5` of the file's SHA-256 and its position, so reindexing overwrites instead of duplicating.
+
+| Document | blocks before | after |
+| --- | ---: | ---: |
+| NIST SP 800-53A r5 | 4,327 | 1,666 |
+| NIST SP 800-53 r5 | 10,180 | 8,023 |
+| AWS security whitepaper | 985 | 719 |
+
+One quiet bug is worth confessing. The embedding model started as `bge-small-en-v1.5`, which has a 512 token window, while chunks run to 1,500 characters. The tail of every long chunk was being silently truncated and never embedded. Nothing errors when that happens, the results just get a bit worse, which is the most annoying kind of bug. Moving to `nomic-embed-text-v1.5`, which takes 8,192 tokens, got the whole chunk in.
+
+## Making it fast
+
+**MMR was quadratic in the wrong variable.** Picking 50 candidates out of 400 took 46 seconds. It takes 0.8 now. Three things were wrong and only the last mattered much. Vectors were re-normalised inside the similarity function on every call, the relevance term was recomputed every round although it never changes, and each round compared every remaining candidate against every pick so far. Only the newest pick can lower a candidate's score, so a running maximum per candidate turns the inner loop into one comparison instead of `k`. I checked the output against the old implementation over 800 randomised inputs and four bias values before trusting it.
+
+**A turn took three transactions.** Writing the question, the answer and reading the conversation back each opened their own connection, so two requests on one conversation could interleave into question, question, answer, answer. It's one transaction with `SELECT ... FOR UPDATE` on the conversation row now. The four searches also run concurrently, since none needs another's result.
+
+## Keeping customers apart
+
+One instance, many customers, and their documents are the whole product, so this was the part that had to be right. Four layers, on purpose.
+
+1. **The tenant id comes from the validated token.** It's read from the `tid` claim of a signed Entra ID token and nowhere else. No route accepts a tenant as a parameter, so there's no request you can construct that asks for someone else's documents. This is the layer doing the real work.
+2. **Rows are keyed on identity.** Every Postgres table is keyed on `(tenant_id, user_id, ...)`. An earlier version keyed conversations on the conversation id alone, so two tenants picking the same id collided and a user could read a colleague's conversation by guessing.
+3. **Row-level security checks it again.** It catches the query someone adds later and forgets the `WHERE`. It does nothing unless the app connects as a role without `BYPASSRLS`, and my Compose setup doesn't, so in development the policies are decorative. I wrote that down instead of leaving it as a surprise.
+4. **Storage is separate.** Each tenant gets its own Qdrant collection and OpenSearch index, so there's no filter to forget.
+
+## Testing without anything running
+
+Importing the dense module used to build a Qdrant client and load about a gigabyte of embedding weights as a side effect, and importing the database module opened a connection pool. That made the API untestable without Docker, and made `--help` pay for a gigabyte. Settings are one frozen value now, everything that talks to the outside world is an object with lazy clients, and the routes read them off the app, so `create_app` can be handed fakes. The result is 66 tests in under a second with nothing running, including one that checks a tenant can't see another's upload jobs. The fake database is keyed the same way as the real one, so a cross-tenant read misses in a test for the same reason it misses in Postgres.
+
+## What it doesn't do
+
+No OCR, so scanned PDFs come out empty. Upload jobs and OAuth state live in a dict in one process, which is wrong for two replicas. There are no migrations, so changing the embedding model drops and reindexes the collection. The hierarchical routing the repo's name promises never got built, because I'd already made the repo by the time I picked the name. And the Compose file is a development stack, not a deployment.
+
+## Four decisions before an answer
+
+<RetrievalExhibit />
+
+<div class="technical-note">
+  <p class="eyebrow">THE FAILURE IS OFTEN UPSTREAM</p>
+  <p>A perfectly fluent answer is still useless if retrieval supplied the wrong passages. Every stage in this pipeline exists because the stage before it had a failure of its own.</p>
+</div>
+
+There is no public Iris repository to inspect. This note keeps to my own account of the architecture, and the exhibit explains the system rather than connecting to any company's documents.
+
+<div class="source-evidence">
+  SOURCE / My own account of the project. Related open-source ingestion work: <a href="https://github.com/aditbajaj/fibrumpdf" target="_blank" rel="noopener noreferrer">FibrumPDF ↗</a>
+</div>
