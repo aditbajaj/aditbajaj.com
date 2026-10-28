@@ -1,0 +1,14 @@
+---
+import StepExhibit from "./StepExhibit.astro";
+---
+
+<StepExhibit
+  label="03 / BEFORE THE MODEL ANSWERS"
+  note="ARCHITECTURE NOTE"
+  steps={[
+    ["Retrieve", "A small model writes a plausible fake answer and that is what gets embedded. Qdrant finds the paraphrase while OpenSearch BM25 keeps exact terms like IR-4 and Annex A.8.16."],
+    ["Fuse", "Reciprocal rank fusion combines rankings, not incompatible scores, and it runs inside each scope first so a big corpus can't win on volume. MMR trims the near-duplicates."],
+    ["Split", "The evidence budget goes to whichever scope the question is actually about, judged by dense similarity. There is no reranker. I measured one and deleted it."],
+    ["Cite", "Passages keep document names and page numbers, are labelled as organisation or reference material, and citation numbers that point at nothing are dropped."],
+  ]}
+/>

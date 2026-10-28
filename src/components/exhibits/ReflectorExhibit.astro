@@ -1,0 +1,47 @@
+---
+const shots = "https://raw.githubusercontent.com/aditbajaj/history-hologram/main/screenshots";
+const modes = [
+  {
+    name: "Scene",
+    src: `${shots}/anzac.gif`,
+    alt: "ANZAC scene playback recording",
+    text: "The recorded scene uses time-derived actor and camera poses. The same YAML story feeds the normal view and the reflector output.",
+  },
+  {
+    name: "Reflector",
+    src: `${shots}/carsSpinning.png`,
+    alt: "Four mirrored views for the reflector",
+    text: "I render one canvas and mirror it with captureStream() to the other three sides. Four views do not require four independent worlds.",
+  },
+];
+---
+
+<div class="exhibit" data-reflector-exhibit>
+  <div class="exhibit-bar">
+    <span>04 / ONE WORLD, TWO OUTPUTS</span>
+    <div class="exhibit-tabs">
+      {modes.map((m, i) => (
+        <button class="nb-btn" type="button" data-mode={i} aria-pressed={i === 0 ? "true" : "false"}>{m.name}</button>
+      ))}
+    </div>
+  </div>
+  <div class="timeline-preview">
+    {modes.map((m, i) => <img src={m.src} alt={m.alt} loading="lazy" data-view={i} hidden={i !== 0} />)}
+  </div>
+  <div class="exhibit-body">
+    {modes.map((m, i) => <p class="exhibit-copy" data-view={i} hidden={i !== 0} aria-live="polite">{m.text}</p>)}
+  </div>
+</div>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>("[data-reflector-exhibit]")) {
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>("[data-mode]")];
+    buttons.forEach((button) =>
+      button.addEventListener("click", () => {
+        const mode = button.dataset.mode;
+        buttons.forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+        root.querySelectorAll<HTMLElement>("[data-view]").forEach((v) => (v.hidden = v.dataset.view !== mode));
+      }),
+    );
+  }
+</script>

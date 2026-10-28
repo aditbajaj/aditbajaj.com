@@ -1,0 +1,51 @@
+---
+import { brailleCharacter } from "../../lib/braille";
+
+const initial = [true, false, true, true, false, true, false, false];
+const output = brailleCharacter(initial);
+const code = (char: string) => `U+${char.codePointAt(0)?.toString(16).toUpperCase()}`;
+---
+
+<div class="exhibit" data-braille-exhibit>
+  <div class="exhibit-bar">
+    <span>02 / EIGHT SAMPLES. ONE CHARACTER.</span>
+    <button class="nb-icon" type="button" data-clear title="Clear dots" aria-label="Clear Braille dots">↺</button>
+  </div>
+  <div class="exhibit-body braille-exhibit">
+    <div class="pixel-grid" aria-label="Braille cell">
+      {initial.map((on, i) => (
+        <button type="button" aria-label={`Braille sample ${i + 1}`} aria-pressed={on ? "true" : "false"}></button>
+      ))}
+    </div>
+    <span aria-hidden="true">→</span>
+    <div>
+      <output class="braille-output" aria-label="Encoded Braille character">{output}</output>
+      <div class="braille-code"><span data-code>{code(output)}</span><br />2 × 4 → 1 cell</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { brailleCharacter } from "../../lib/braille";
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-braille-exhibit]")) {
+    const dots = [...root.querySelectorAll<HTMLButtonElement>(".pixel-grid button")];
+    const output = root.querySelector("output")!;
+    const code = root.querySelector("[data-code]")!;
+    const render = () => {
+      const char = brailleCharacter(dots.map((d) => d.getAttribute("aria-pressed") === "true"));
+      output.textContent = char;
+      code.textContent = `U+${char.codePointAt(0)?.toString(16).toUpperCase()}`;
+    };
+    dots.forEach((dot) =>
+      dot.addEventListener("click", () => {
+        dot.setAttribute("aria-pressed", String(dot.getAttribute("aria-pressed") !== "true"));
+        render();
+      }),
+    );
+    root.querySelector("[data-clear]")?.addEventListener("click", () => {
+      dots.forEach((d) => d.setAttribute("aria-pressed", "false"));
+      render();
+    });
+  }
+</script>

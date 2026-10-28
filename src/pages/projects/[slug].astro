@@ -16,9 +16,9 @@ interface Props {
 }
 
 const { project } = Astro.props;
-const { Content } = await render(project);
+const { Content, headings } = await render(project);
 ---
 
-<ProjectLayout project={project}>
+<ProjectLayout project={project} headings={headings}>
   <Content />
 </ProjectLayout>

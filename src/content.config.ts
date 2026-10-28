@@ -20,6 +20,12 @@ const projects = defineCollection({
 			})
 			.optional(),
 		order: z.number(),
+		// Notebook fields: the homepage entry and the case-study header.
+		category: z.string(),
+		summary: z.string(),
+		deck: z.string(),
+		stack: z.string(),
+		stats: z.array(z.tuple([z.string(), z.string()])).length(3),
 	}),
 });
 

@@ -1,0 +1,13 @@
+---
+import StepExhibit from "./StepExhibit.astro";
+---
+
+<StepExhibit
+  label="01 / THE LANGUAGE BOUNDARY"
+  pipeline
+  steps={[
+    ["MuPDF", "Extract text, positions, font metadata and vector edges once. PDF interpretation stays in the library built for it."],
+    ["Go", "Split blocks, classify text, infer layout, reconstruct tables, then post-process. Geometry and native concurrency replace Python hot loops."],
+    ["Python", "Expose structured output and iterate pages with ijson. collect() is the explicit point where the result becomes an in-memory collection."],
+  ]}
+/>

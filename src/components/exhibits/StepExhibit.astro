@@ -1,0 +1,56 @@
+---
+// One exhibit shape covers the FibrumPDF pipeline and the Iris retrieval tabs:
+// a row of steps, one explanation visible at a time.
+interface Props {
+  label: string;
+  note?: string;
+  steps: [string, string][];
+  pipeline?: boolean;
+}
+
+const { label, note, steps, pipeline = false } = Astro.props;
+---
+
+<div class="exhibit" data-step-exhibit>
+  <div class="exhibit-bar">
+    <span>{label}</span>
+    {pipeline ? (
+      <div class="exhibit-tabs">
+        <button class="nb-icon" type="button" data-move="-1" aria-label="Previous stage">‹</button>
+        <button class="nb-icon" type="button" data-move="1" aria-label="Next stage">›</button>
+      </div>
+    ) : (
+      note && <span>{note}</span>
+    )}
+  </div>
+  <div class="exhibit-body">
+    <div class={pipeline ? "pipeline" : "exhibit-tabs"}>
+      {steps.map(([name], i) => (
+        <span class="pipeline-step">
+          <button class="nb-btn" type="button" data-step={i} aria-pressed={i === 0 ? "true" : "false"}>{name}</button>
+          {pipeline && i < steps.length - 1 && <span aria-hidden="true">→</span>}
+        </span>
+      ))}
+    </div>
+    {steps.map(([, text], i) => (
+      <p class="exhibit-copy" data-copy={i} hidden={i !== 0} aria-live="polite">{text}</p>
+    ))}
+  </div>
+</div>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>("[data-step-exhibit]")) {
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>("[data-step]")];
+    const copies = [...root.querySelectorAll<HTMLElement>("[data-copy]")];
+    let current = 0;
+    const show = (index: number) => {
+      current = (index + buttons.length) % buttons.length;
+      buttons.forEach((b, i) => b.setAttribute("aria-pressed", String(i === current)));
+      copies.forEach((c, i) => (c.hidden = i !== current));
+    };
+    buttons.forEach((b, i) => b.addEventListener("click", () => show(i)));
+    root.querySelectorAll<HTMLButtonElement>("[data-move]").forEach((b) =>
+      b.addEventListener("click", () => show(current + Number(b.dataset.move))),
+    );
+  }
+</script>
