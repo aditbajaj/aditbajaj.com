@@ -1,414 +1,145 @@
 ---
 import { getCollection } from "astro:content";
-import ProjectPreview from "../components/ProjectPreview.astro";
 import Layout from "../layouts/Layout.astro";
 
-const projects = (await getCollection("projects")).sort(
+const all = (await getCollection("projects")).sort(
   (a, b) => a.data.order - b.data.order,
 );
+const job = all.find((p) => p.id === "outcoach")!;
+const projects = all.filter((p) => p.id !== "outcoach");
+
+const tools = [
+  ["rich-soup", "PYTHON", "Render the page first. Extract the useful structure after JavaScript has had its say."],
+  ["mtafoubs", "GO", "Moving trash across Linux filesystems. A small problem with surprisingly unfriendly edge cases."],
+  ["mupdf-prebuilts", "C / CI", "Shared-library releases so using a PDF parser doesn’t start with compiling its dependencies."],
+  ["WinHideDot", "C#", "Dotfiles should behave like dotfiles. A watcher that hides them on Windows."],
+];
 ---
 
 <Layout
-  title="Adit Bajaj"
-  description="Adit Bajaj is building an AI social media manager for Outcoach. Projects: FibrumPDF, Iris, Termdash and History Hologram."
+  title="Adit Bajaj | Engineering Notebook"
+  description="Adit Bajaj, Melbourne. Experiments in fast PDF extraction, private retrieval, terminal games and physical storytelling."
 >
-  <section class="intro wrap" aria-labelledby="intro-title">
-    <div class="lead">
-      <h1 id="intro-title">Adit Bajaj</h1>
-      <p>
-        Hi, I'm Adit. I'm at high school in Melbourne. I love coding, and I've
-        been doing so since I was 10!
-      </p>
-      <p class="who">
-        Right now I'm building an AI social media manager for <a
-          class="wiggle"
-          href="https://outcoach.io"
-          target="_blank"
-          rel="noopener noreferrer">Outcoach</a
-        >, a class management platform. I'm looking for work experience, an
-        internship or a contribution at a startup.
-      </p>
+  <section class="intro-notebook">
+    <div class="intro-topline eyebrow">
+      <span><span class="signal"></span>OPEN TO INTERESTING WORK</span>
+      <span class="muted">MELBOURNE<span class="location-long">, AUSTRALIA</span> / 2026</span>
     </div>
+    <div class="name-line"><h1>Adit Bajaj</h1><span class="name-dot"></span></div>
+    <div class="intro-bottom">
+      <p class="intro-statement">What do I tell you?<br /><em>I just love building.</em></p>
+      <p class="intro-bio">
+        I’m a high school student in Melbourne, and I’ve been coding since I was 10.
+        I like the unglamorous layers: PDF parsers, retrieval pipelines, and the
+        exact point where something breaks.
+      </p>
+      <div class="working-note">
+        <span class="eyebrow muted">LOOKING FOR</span>
+        <p>
+          Work experience, an internship, or a startup to contribute to.
+        </p>
+      </div>
+    </div>
+  </section>
 
-    <article class="credential" aria-labelledby="credential-title">
-      <header>
-        <img
-          src="/ms-badge.svg"
-          alt="Microsoft Certified Associate badge"
-          width="120"
-          height="120"
-        />
-        <div>
-          <p class="eyebrow">Microsoft Certified · Associate</p>
-          <h2 id="credential-title">Azure AI Apps and Agents Developer</h2>
+  <section id="work" aria-labelledby="job-title">
+    <div class="section-label">
+      <h2 id="job-title">Work</h2>
+      <span class="eyebrow muted">SEP 2026 / PRESENT</span>
+    </div>
+    <article class="job">
+      <div class="job-when">
+        <p>Software &amp; AI Engineer</p>
+        <p class="muted">Internship, Melbourne</p>
+      </div>
+      <div class="job-body">
+        <div class="job-head">
+          <a href={`/projects/${job.id}/`} class="project-title">Outcoach<span aria-hidden="true">↗</span></a>
+          <span class="click-hint" aria-hidden="true">
+            <svg viewBox="0 0 58 34"><path d="M56 6C40 2 20 6 5 25" /><path d="M5 25L7 12" /><path d="M5 25L18 27" /></svg>
+            click me!
+          </span>
         </div>
-      </header>
-
-      <ul class="scope" aria-label="Areas covered by exam AI-103">
-        <li>Azure AI solution planning, security and optimisation</li>
-        <li>Generative AI, NLP and computer vision</li>
-        <li>AI agents, tools and MCP</li>
-        <li>Hybrid Retrieval Augmented Generation (RAG) pipelines</li>
-      </ul>
-
-      <a
-        class="wiggle"
-        href="https://learn.microsoft.com/api/credentials/share/en-us/AditBajaj-5361/A115DCFABF437CED?sharingId=5A7B3253B57E732D"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Verify AI-103 <span aria-hidden="true">↗</span>
-      </a>
+        <ul>
+          <li>Own Outcoach’s AI employees end to end. Handed a one-line brief, I research the APIs and what the user actually needs, write the product requirements with the founders, derive the features, then design the architecture and build it across every repo (Flutter app, React admin portal, Node backend, agent service, migrations), on shared agent infrastructure I built for future employees.</li>
+          <li><strong>Viktor</strong>, an AI social media manager. Researched the Meta Graph API, the platforms’ limits and real club pages, then redesigned it from scheduled posting to coach-triggered posting when clubs turned out not to post timetables. A multimodal Mastra and Gemini agent that turns a coach’s photos and videos into on-brand Facebook and Instagram posts.</li>
+          <li><strong>Zoe</strong>, a voice-enabled coaching assistant on OpenAI and Flutter. Scoped from a short brief into a morning briefing for coaches and live dictation that turns a spoken recap into goal progress, attendance and parent feedback.</li>
+          <li>Designed human-in-the-loop approval, undo, audit logging and role-based access, so nothing reaches parents until a coach signs off.</li>
+          <li>Found and reported critical authentication bypass, privilege escalation, SQL injection and data exposure bugs, then verified the fixes. Every PR ships with its merge order, env secrets and known test failures.</li>
+        </ul>
+      </div>
+      <aside class="job-side" aria-label="Screenshots">
+        <a href={`/projects/${job.id}/`} class="side-shot">
+          <img src="/outcoach/zoe-side.webp" alt="A coach asks Zoe &quot;How is Ann doing?&quot; and gets Ann's card with her goals" width="490" height="880" loading="lazy" />
+          <span class="eyebrow muted">ZOE / ASK ABOUT ANY STUDENT</span>
+        </a>
+      </aside>
     </article>
   </section>
 
-  <section class="projects wrap" id="projects" aria-labelledby="projects-title">
-    <h2 id="projects-title">Projects</h2>
+  <section id="projects" aria-labelledby="work-title">
+    <div class="section-label">
+      <h2 id="work-title">Selected experiments</h2>
+      <span class="eyebrow muted">{String(projects.length).padStart(2, "0")} PROJECTS / NOT JUST THE HAPPY PATH</span>
+    </div>
+    {projects.map((project) => {
+      const number = String(project.data.order).padStart(2, "0");
+      const href = `/projects/${project.id}/`;
+      const { title, category, summary, highlights, preview } = project.data;
+      return (
+        <article class="project-entry">
+          <span class="project-index">{number} /</span>
+          <div class="project-details">
+            <p class="eyebrow muted">{category}</p>
+            <a href={href} class="project-title">{title}<span aria-hidden="true">↗</span></a>
+            <p class="project-summary">{summary}</p>
+            <div class="project-tags">{highlights.slice(0, 2).map((h) => <span>{h}</span>)}</div>
+          </div>
+          <a href={href} class="project-media" aria-label={`Explore ${title}`}>
+            {preview ? (
+              <>
+                <img src={preview.src} alt={preview.alt} loading="lazy" style={`object-fit:${preview.fit}`} />
+                <span class="media-caption">{number} / {title.toUpperCase()}</span>
+              </>
+            ) : (
+              <div class="fibrum-visual">
+                <div class="eyebrow muted">LESS WAITING. SAME USEFUL STRUCTURE.</div>
+                <div class="throughput">318<small>PAGES / SEC</small></div>
+                <div class="fibrum-flow"><span>PDF</span>→<span>MuPDF + Go</span>→<span>JSON</span></div>
+                <div class="fibrum-bottom"><span>77× PYMUPDF4LLM</span><span>REPOSITORY BENCHMARK</span></div>
+              </div>
+            )}
+          </a>
+        </article>
+      );
+    })}
+  </section>
 
-    <div class="project-showcase">
-      <ol>
-        {projects.map((project) => {
-          const number = String(project.data.order).padStart(2, "0");
+  <section class="credentials-band">
+    <div class="credential-line">
+      <img src="/ms-badge.svg" alt="Microsoft Certified Associate badge" width="55" height="55" />
+      <div>
+        <p class="eyebrow muted">MICROSOFT CERTIFIED / AI-103</p>
+        <h3>Azure AI Apps and Agents Developer</h3>
+        <a href="https://learn.microsoft.com/api/credentials/share/en-us/AditBajaj-5361/A115DCFABF437CED?sharingId=5A7B3253B57E732D" target="_blank" rel="noopener noreferrer">VERIFY CREDENTIAL ↗</a>
+      </div>
+    </div>
+    <p class="intro-bio">Agents, tools and MCP. Generative AI, NLP and computer vision. Hybrid RAG pipelines. Planning, securing and evaluating AI systems.</p>
+  </section>
 
-          return (
-            <li class="project-item">
-              <a class="project-link" href={`/projects/${project.id}/`}>
-                <ProjectPreview project={project} />
-                <div class="project-heading">
-                  <div>
-                    <span class="project-number" aria-hidden="true">
-                      {number}
-                    </span>
-                    <h3>{project.data.title}</h3>
-                  </div>
-                  <span class="project-arrow" aria-hidden="true">↗</span>
-                </div>
-                <p>{project.data.description}</p>
-                <ul class="project-highlights" aria-label={`${project.data.title} highlights`}>
-                  {project.data.highlights.map((highlight) => <li>{highlight}</li>)}
-                </ul>
-                <p class="stack">{project.data.tags.join(" · ")}</p>
-              </a>
-            </li>
-          );
-        })}
-      </ol>
+  <section>
+    <div class="section-label">
+      <h2>Smaller rabbit holes</h2>
+      <a class="eyebrow muted" href="https://github.com/aditbajaj" target="_blank" rel="noopener noreferrer">ON GITHUB ↗</a>
+    </div>
+    <div class="small-tools">
+      {tools.map(([name, lang, text]) => (
+        <a class="tool" href={`https://github.com/aditbajaj/${name}`} target="_blank" rel="noopener noreferrer">
+          <h3>{name}<span aria-hidden="true">↗</span></h3>
+          <p>{text}</p>
+          <span class="eyebrow">{lang}</span>
+        </a>
+      ))}
     </div>
   </section>
-
-  <section class="also wrap" aria-labelledby="also-title">
-    <h2 id="also-title">Also on GitHub</h2>
-
-    <ul>
-      <li>
-        <a class="wiggle" href="https://github.com/aditbajaj/rich-soup" target="_blank" rel="noopener noreferrer">rich-soup</a>
-        <span>Python</span>
-        <p>
-          Renders a page first, then extracts JSON or Markdown. BeautifulSoup
-          for pages that need JavaScript to exist.
-        </p>
-      </li>
-      <li>
-        <a class="wiggle" href="https://github.com/aditbajaj/mtafoubs" target="_blank" rel="noopener noreferrer">mtafoubs</a>
-        <span>Go</span>
-        <p>
-          Moves files to the trash across filesystems on Linux, which the
-          freedesktop spec makes harder than it sounds.
-        </p>
-      </li>
-      <li>
-        <a class="wiggle" href="https://github.com/aditbajaj/mupdf-prebuilts" target="_blank" rel="noopener noreferrer">mupdf-prebuilts</a>
-        <span>C</span>
-        <p>
-          Prebuilt MuPDF shared libraries, so installing FibrumPDF does not mean
-          compiling MuPDF first.
-        </p>
-      </li>
-      <li>
-        <a class="wiggle" href="https://github.com/aditbajaj/WinHideDot" target="_blank" rel="noopener noreferrer">WinHideDot</a>
-        <span>C#</span>
-        <p>
-          Watches for dotfiles on Windows and hides them, the way Linux has
-          always done it.
-        </p>
-      </li>
-    </ul>
-  </section>
 </Layout>
-
-<style>
-  /* Masthead: identity and credential in one short band, so the project grid
-     starts near the top of the page instead of a screen down. */
-  .intro {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.62fr);
-    align-items: start;
-    column-gap: clamp(2rem, 5vw, 4rem);
-    padding-top: clamp(1.75rem, 3vw, 2.5rem);
-  }
-
-  .lead {
-    grid-column: 1;
-  }
-
-  .lead h1 {
-    font-size: clamp(2.75rem, 5.5vw, 4.25rem);
-  }
-
-  .lead p {
-    max-width: 30rem;
-    margin: 0.9rem 0 0;
-    font-size: clamp(1.10rem, 2.1vw, 1.3rem);
-    line-height: 1.3;
-    letter-spacing: -0.015em;
-  }
-
-  .lead .who {
-    margin-top: 0.75rem;
-    color: var(--muted);
-    font-size: clamp(0.92rem, 1.3vw, 1rem);
-    line-height: 1.5;
-    letter-spacing: 0;
-  }
-
-  .credential {
-    grid-column: 2;
-    grid-row: 1;
-    margin: 0.35rem 0 0;
-    padding: 0.9rem 1rem 1rem;
-    border: 1px solid var(--line);
-    background: var(--surface);
-  }
-
-  .credential header {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-  }
-
-  .credential img {
-    width: clamp(3.25rem, 5.5vw, 4rem);
-    height: auto;
-    flex: 0 0 auto;
-  }
-
-  .credential .eyebrow {
-    margin: 0 0 0.3rem;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 0.6rem;
-    letter-spacing: 0.11em;
-    text-transform: uppercase;
-  }
-
-  .credential h2 {
-    padding: 0;
-    border: 0;
-    font-size: clamp(1rem, 1.6vw, 1.15rem);
-    line-height: 1.15;
-    letter-spacing: -0.01em;
-  }
-
-  /* The areas exam AI-103 measures. */
-  .scope {
-    margin: 0.8rem 0 0;
-    padding: 0.75rem 0 0;
-    border-top: 1px solid var(--line);
-    color: var(--muted);
-    font-size: 0.75rem;
-    line-height: 1.5;
-    list-style: none;
-  }
-
-  .scope li {
-    padding-left: 0.9rem;
-    text-indent: -0.9rem;
-  }
-
-  .scope li::before {
-    color: var(--accent);
-    content: "→ ";
-  }
-
-  .credential > a {
-    display: inline-block;
-    margin-top: 0.8rem;
-    color: var(--link);
-    font-size: 0.78rem;
-  }
-
-  .also {
-    padding: clamp(2rem, 4vw, 3rem) 0 clamp(4rem, 9vw, 6rem);
-  }
-
-  .also ul {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 clamp(2rem, 5vw, 4rem);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .also li {
-    padding: clamp(0.8rem, 1.6vw, 1rem) 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .also li a {
-    color: var(--link);
-    font-size: 0.92rem;
-  }
-
-  .also li span {
-    margin-left: 0.55rem;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 0.66rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .also li p {
-    margin: 0.25rem 0 0;
-    color: var(--muted);
-    font-size: 0.82rem;
-    line-height: 1.45;
-  }
-
-  .projects {
-    padding-top: clamp(2rem, 4vw, 3rem);
-    scroll-margin-top: 2rem;
-  }
-
-  .project-showcase {
-    margin-top: clamp(0.5rem, 1vw, 0.875rem);
-  }
-
-  .project-link :global(.preview-frame) {
-    aspect-ratio: 2 / 1;
-  }
-
-
-  /* The card is an <a>, so it must pin its own colour: otherwise the global
-     a:hover tints every bit of text inside it that has no colour of its own. */
-  .project-link,
-  .project-link:hover,
-  .project-link:focus-visible {
-    color: var(--text);
-  }
-
-  .project-link {
-    display: block;
-    height: 100%;
-    text-decoration: none;
-    transition: border-color 200ms ease, transform 200ms ease;
-  }
-
-  .project-link:hover,
-  .project-link:focus-visible {
-    border-color: var(--accent);
-    transform: translateY(-0.12rem) rotate(0.8deg) scale(1.015);
-  }
-
-  .project-heading {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  .project-heading > div {
-    display: flex;
-    align-items: baseline;
-    gap: 0.75rem;
-  }
-
-  .project-number {
-    color: var(--accent);
-    font-family: ui-monospace, monospace;
-    font-size: 1rem;
-  }
-
-
-  .project-arrow {
-    color: var(--accent);
-    opacity: 0;
-    transform: translate(-0.3rem, 0.3rem);
-    transition: opacity 160ms ease, transform 160ms ease;
-  }
-
-  .project-link:hover .project-arrow,
-  .project-link:focus-visible .project-arrow {
-    opacity: 1;
-    transform: translate(0, 0);
-  }
-
-  .stack {
-    margin: 0.7rem 0 0;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 0.66rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  /* The evidence for the sentence above it, so it outranks the stack line.
-     Chips rather than dot-separated text: a wrapped separator used to dangle
-     at the end of a line. */
-  .project-highlights {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    margin: 0.85rem 0 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .project-highlights li {
-    padding: 0.2rem 0.45rem;
-    border: 1px solid var(--line);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    line-height: 1.4;
-    white-space: nowrap;
-  }
-
-  .project-link > p:not(.stack) {
-    max-width: 32rem;
-    margin: 0.6rem 0 0;
-    font-size: 0.9rem;
-    line-height: 1.45;
-  }
-
-
-  @media (prefers-reduced-motion: reduce) {
-    .project-link,
-    .project-arrow,
-    .project-link :global(.preview-frame) {
-      transition: none;
-    }
-  }
-
-  @media (max-width: 44rem) {
-    .intro {
-      display: block;
-      padding: 2.25rem 0 1.5rem;
-    }
-
-    .credential {
-      max-width: 34rem;
-      margin-top: 1.75rem;
-    }
-
-    .also ul {
-      grid-template-columns: 1fr;
-    }
-
-    .project-link :global(.preview-frame) {
-      aspect-ratio: 4 / 3;
-    }
-  }
-</style>

@@ -1,0 +1,118 @@
+---
+title: Outcoach AI Employees
+description: I lead development of the AI employees at Outcoach, a class management platform for coaching clubs. Viktor writes and publishes social posts, Zoe briefs coaches and updates records from a voice note.
+year: 2026
+tags:
+  - TypeScript
+  - Mastra
+  - React
+  - Node.js
+  - Flutter
+  - Redis
+highlights:
+  - "Viktor: posts from photos and video"
+  - "Zoe: morning briefing, voice updates"
+  - 28-case eval suite
+  - Child-safety rules
+order: 0
+category: "AI EMPLOYEES → TRUSTED CHANGES"
+summary: "I'm the AI employee guy at Outcoach. Viktor runs a club's social media, Zoe helps its coaches. The hard part was deciding what they should never do on their own."
+deck: "Outcoach runs martial arts, music and swim clubs. I joined as an intern in September and now lead its AI employees, from founder requirements to production."
+stack: "TYPESCRIPT / MASTRA / REACT / FLUTTER"
+stats:
+  - ["28", "REAL COACH REQUESTS IN THE EVAL SUITE"]
+  - ["~3 sec", "MEDIAN REPLY, ABOUT HALF A CENT"]
+  - ["0", "POSTS SENT WITHOUT A COACH'S SAY"]
+---
+
+## What I was asked to build
+
+Outcoach is a class management platform for coaching businesses: timetables, attendance, invoicing, messages to parents. I joined in mid September as a software and AI engineer, and building its AI employees became my job. Not a chat box on a dashboard, but software a club hires for a job and trusts to do it.
+
+I take each one from the founders' requirements to production: architecture, React frontend, Node.js backend and the LLM agent. Along the way I built the shared agent infrastructure underneath, so the third employee will be easy to add. Two are out so far. Viktor handles social media and Zoe helps coaches run their day.
+
+## Viktor, the social media manager
+
+Viktor is a multimodal TypeScript agent on Mastra and Gemini. It turns a coach's photos and videos into on-brand posts and publishes through the Meta Graph API. Before writing any code I wrote a twelve section plan and checked my assumptions against the codebase I'd just joined. That was worth it. The existing class administrator never called a model, its outbox marked messages as sent when nothing had left the system, and its routes only checked that you were logged in, so any member of a club could change its config.
+
+I broke the build into 20 steps and put a fake channel before the real Facebook one, so I could keep testing while Meta's review dragged on. Phase one gave coaches real drafts with no Meta involved at all.
+
+The Meta connection is built so it can't embarrass anyone:
+
+- OAuth state lives in Redis for ten minutes and is read once, so it can't be replayed.
+- Tokens are encrypted per club with AES-256-GCM, and a Redis lock stops two jobs refreshing the same one.
+- Every post carries an idempotency key per platform, so a retry or a crash never posts twice.
+
+I also looked into WhatsApp and dropped it. Groups and channels have no API, the business API reaches one number at a time at about 6 cents a message, it needs consent clubs don't collect, and unofficial tools get numbers banned. I told the founders early, along with the news that Meta's business verification takes two to four weeks and often fails first time.
+
+<figure>
+  <img src="/outcoach/viktor-flow.webp" alt="Flow from an idea or a nudge, to the coach adding photos and a note, to Viktor writing a draft, to the coach posting" width="1266" height="178" loading="lazy" />
+  <figcaption>How a post gets made. The coach starts it, Viktor writes it, the coach posts.</figcaption>
+</figure>
+
+<figure class="narrow">
+  <img src="/outcoach/viktor-preview.webp" alt="Viktor's approval queue showing a drafted cancellation post with Facebook and Instagram tabs, what it was based on, and Approve, Try again and Reject buttons" width="745" height="500" loading="lazy" />
+  <figcaption>A draft for the coach: one tab per platform, and each is approved on its own.</figcaption>
+</figure>
+
+<figure class="narrow">
+  <img src="/outcoach/viktor-voice.webp" alt="Viktor's settings for a club's voice: tone, who it writes for, emoji, hashtags and banned words" width="1200" height="640" loading="lazy" />
+  <figcaption>The club's voice: tone, audience, emoji, hashtags and words it must never use.</figcaption>
+</figure>
+
+### Changing the product
+
+The first version posted from the timetable on a schedule. Then I read a lot of real club pages and found that clubs don't post their schedules, and coaches were approving every post anyway. So I replaced scheduled posting with posting a coach starts. The coach picks what to share and adds photos, and the AI writes it in the club's voice.
+
+It covers the six things clubs really post about: celebrating the club, general advertising, major events, competitions, open spots and thanking sponsors. It learns a club's tone, emoji, hashtags and banned words, nudges the coach when something is due ("it's been two months since you thanked your sponsor"), and fact checks each post before anything goes out.
+
+It never names a child unless a coach confirms consent, and even then it uses only first names the coach typed, never surnames or names pulled from club records.
+
+## Zoe, the coach assistant
+
+Zoe runs on OpenAI with a Flutter app. She started as a plan on October 1 and went out as five pull requests across five repos on October 26. She does three things.
+
+Every morning it sends a note about 90 minutes before the first class, never before 5am, and skips days with no classes. During coaching a coach can ask about a student or class in plain words, typos and half names included. If a name matches several students it shows each with their last class and never picks for the coach.
+
+After a session the coach types or speaks what happened and it updates goals, feedback and attendance. A single tick saves straight away with an Undo. Anything bigger lands on one review card, grouped by student, and nothing saves until the coach taps Send. "Nailed it" means tick the goal, "needs work" becomes feedback. Anything it didn't turn into a change shows under "Not changed" with the reason. A coach can keep a note private by saying "just a note for me".
+
+She won't create, edit or delete goals, touch payments, bookings or credits, or give coaching advice. Role-based access means she only sees the coach's own students, and every change is logged with who, which student, before, after and when.
+
+<figure>
+  <img src="/outcoach/zoe-home.webp" alt="Zoe's home screen with the week and suggested questions, an answer card for a student, and a prompt asking which of six matching students a coach means" width="1600" height="1104" loading="lazy" />
+  <figcaption>Left: what a coach sees on opening Zoe. Right: a half name matches six students, so she asks instead of guessing.</figcaption>
+</figure>
+
+<figure class="narrow">
+  <img src="/outcoach/zoe-card.webp" alt="A spoken recap about two students and the review card Zoe builds from it, grouped by student, with Send and Don't send buttons" width="1600" height="1849" loading="lazy" />
+  <figcaption>A spoken recap becomes one review card, grouped by student. Nothing saves until the coach taps Send.</figcaption>
+</figure>
+
+<figure class="phone">
+  <video src="/outcoach/zoe-dictation.mp4" poster="/outcoach/zoe-dictation-poster.webp" autoplay loop muted playsinline width="390" height="844" aria-label="Screen recording of a coach tapping the mic, speaking a recap, and Zoe turning it into a card"></video>
+  <figcaption>The whole loop in 33 seconds: tap the mic, speak, pause, send. The live words get swapped for a cleaner version about a second after the pause.</figcaption>
+</figure>
+
+### Choosing the model by measurement
+
+The agent has eleven tools and an eval suite of 28 real coach requests that checks the tool calls, the exact changes and the wording. I used it to settle the model argument. GPT-5.4 mini gave a median of 3.0 seconds and 90 percent under 4.9, while the bigger models were nearly twice as slow. When the team wanted DeepSeek I ran the same 28 cases, agreed it won by a decent margin, and opened the PR to switch myself.
+
+## Security
+
+Right after joining I found a chain of bugs and reported it privately: authentication, privilege escalation, SQL injection and private data exposure. I confirmed what I needed to, stopped short of touching a real account, and checked the fixes once the team shipped them.
+
+## How I got here
+
+It started with candy. I bought it in bulk at Costco for 33 cents a piece, and the school canteen sold the same stuff for $1.50, so I sold it for $1 and made about $200. I flipped that into $400 on eBay and Facebook Marketplace, delivering by bike. My parents thought I was going to the park.
+
+Then I wanted a proper job, and a supermarket was too young and a gas station was a no, so I went for McDonald's. Three of them turned me down, which stung, considering I'd run a candy business. My dad asked why I even wanted McDonald's, and honestly, I didn't. I wanted to build things.
+
+So I cold emailed forty Melbourne startups and founders. Half of my openers were "This might seem a bit random." Twenty people replied, and most of the replies were the kindest rejections I've ever read: "super impressive, but we don't have the setup right now." When it went quiet I sent ten follow ups in fifteen minutes, two founders answered within half an hour, and that's how I learned my first email was just forgettable.
+
+One of Outcoach's founders replied, and I missed it. After weeks of chasing people, I left the one who said yes on read. He emailed again, and we were on the phone that same morning.
+
+I didn't get babysat. I got five repos of code and a one-line description of the job, which I'm told was on purpose, and I've been building ever since.
+
+### How I work now
+
+I write PR descriptions with merge order, secrets and known test failures. When I merged main instead of stage by mistake, I wrote up exactly what happened and had fix PRs up the same day. I wrote a plain guide and recorded a demo for the coach assistant so non-engineers could judge it. And I'd rather argue with a benchmark than an opinion.
