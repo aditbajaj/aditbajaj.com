@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
+import { devApi } from './dev-api.js';
 
 export default defineConfig({
   site: 'https://aditbajaj.com',
@@ -13,5 +14,6 @@ export default defineConfig({
       },
     },
   },
+  vite: { plugins: [devApi()] },
   integrations: [mdx()]
 });

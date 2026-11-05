@@ -25,3 +25,4 @@ pnpm-debug.log*
 
 # cloudflare local dev state
 .wrangler/
+.dev.vars
