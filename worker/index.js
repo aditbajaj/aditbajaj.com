@@ -23,7 +23,7 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
         name url stargazerCount
         primaryLanguage { name }
         defaultBranchRef { target { ... on Commit {
-          history(first: 5) { nodes { messageHeadline committedDate } }
+          history(first: 10) { nodes { messageHeadline committedDate } }
         } } }
       }
     }
@@ -73,7 +73,7 @@ async function build(env) {
   const recent = repos
     .flatMap((r) => (r.defaultBranchRef?.target?.history?.nodes ?? []).map((c) => ({ ...c, repo: r })))
     .sort((a, b) => (a.committedDate < b.committedDate ? 1 : -1))
-    .slice(0, 5);
+    .slice(0, 20);
   const latest = recent[0];
 
   return {

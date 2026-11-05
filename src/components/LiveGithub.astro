@@ -1,29 +1,17 @@
 ---
-// Live GitHub panel. The browser asks our own Worker (worker/index.js), which
-// holds the GitHub token and returns aggregate numbers only (private repos
-// count towards the totals, but their names and messages never leave it).
+// "This week" page, drawn from GitHub. The browser asks our own Worker
+// (worker/index.js), which holds the GitHub token and returns aggregates:
+// private repos only ever show up as counts, never names or messages.
 // Cached in the browser for 10 minutes. If anything fails the panel hides.
 const user = "aditbajaj";
 ---
 
 <a class="live" href={`https://github.com/${user}`} target="_blank" rel="noopener noreferrer" data-live>
   <div class="live-head">
-    <span class="eyebrow"><span class="signal pulse"></span>LIVE FROM GITHUB</span>
+    <span class="eyebrow"><span class="signal pulse"></span>LIVE FROM GITHUB / THIS WEEK</span>
     <span class="mood" data-mood></span>
   </div>
-
-  <div class="live-viz">
-    <figure class="trend">
-      <figcaption class="eyebrow muted">THE LAST YEAR, WEEK BY WEEK</figcaption>
-      <div class="trend-plot" data-plot></div>
-      <div class="trend-axis eyebrow muted"><span>A YEAR AGO</span><span>NOW</span></div>
-    </figure>
-    <div class="log">
-      <span class="eyebrow muted">$ GIT LOG</span>
-      <ul data-log></ul>
-    </div>
-  </div>
-
+  <ol class="week" data-week></ol>
   <p class="live-foot eyebrow muted" data-foot></p>
 </a>
 
@@ -31,23 +19,16 @@ const user = "aditbajaj";
   const root = document.querySelector<HTMLAnchorElement>("[data-live]");
 
   if (root) {
-    const KEY = "gh-live-v6";
+    const KEY = "gh-live-v7";
     const TTL = import.meta.env.DEV ? 0 : 10 * 60 * 1000; // no browser cache while developing
     const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(s)!;
 
     type Data = {
       url: string;
       recent: { repo: string; msg: string; date: string }[];
-      stars: number; top: string; topStars: number; repos: number; years: number;
+      top: string; topStars: number; years: number;
       days: [string, number][]; // [date, contributions], oldest first, includes private work
       priv: number; // private contributions in the window, a count and nothing else
-    };
-
-    const ago = (iso: string) => {
-      const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-      if (s < 3600) return `${Math.max(1, Math.round(s / 60))}m`;
-      if (s < 86400) return `${Math.round(s / 3600)}h`;
-      return `${Math.round(s / 86400)}d`;
     };
 
     // A line about what's going on right now, from the real data. First match wins.
@@ -75,96 +56,70 @@ const user = "aditbajaj";
       return d;
     };
 
-    const text = (sel: string, v: string) => (q(sel).textContent = v);
+    const el = (tag: string, cls = "", text = "") => {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text) e.textContent = text;
+      return e;
+    };
+
+    // Tally marks: groups of four strokes with a slash through full fives.
+    const tally = (n: number, delay: number) => {
+      const wrap = el("span", "tally");
+      wrap.title = `${n} contribution${n === 1 ? "" : "s"}`;
+      const shown = Math.min(n, 20);
+      let k = 0;
+      for (let left = shown; left > 0; left -= 5) {
+        const g = el("span", "tg" + (left >= 5 ? " full" : ""));
+        for (let i = 0; i < Math.min(left, 5) - (left >= 5 ? 1 : 0); i++) {
+          const s = el("i");
+          s.style.setProperty("--r", `${(((k * 7) % 5) - 2) * 0.8}deg`);
+          s.style.animationDelay = `${delay + k++ * 28}ms`;
+          g.append(s);
+        }
+        wrap.append(g);
+      }
+      if (n > 20) wrap.append(el("span", "more", `+${n - 20}`));
+      return wrap;
+    };
 
     load()
       .then((d) => {
         root.href = d.url;
         const counts = d.days.map(([, n]) => n);
 
-        // --- the human bits
-        let best = 0, run = 0;
-        for (const n of counts) best = Math.max(best, (run = n ? run + 1 : 0));
         let streak = 0; // today may still be empty, so a run can end yesterday
         for (let i = counts.length - 1 - (counts[counts.length - 1] ? 0 : 1); i >= 0 && counts[i]; i--) streak++;
-        text("[data-mood]", mood(d, streak));
+        q("[data-mood]").textContent = mood(d, streak);
+
+        // newest public commit message per day
+        const said = new Map<string, string>();
+        for (const c of d.recent) {
+          const day = c.date.slice(0, 10);
+          if (!said.has(day)) said.set(day, c.msg);
+        }
+
+        const week = q("[data-week]");
+        d.days.slice(-7).forEach(([date, n], i, all) => {
+          const li = el("li", i === all.length - 1 ? "today" : "");
+          const label = i === all.length - 1
+            ? "TODAY"
+            : new Date(`${date}T12:00:00`).toLocaleDateString("en", { weekday: "short" }).toUpperCase();
+          li.append(el("span", "day", label), n ? tally(n, i * 90) : el("span", "tally"));
+          li.append(
+            n
+              ? el("span", "say", said.get(date) ?? "off the record")
+              : el("span", "say none", "quiet"),
+          );
+          week.append(li);
+        });
 
         const foot = [
           d.topStars && `★ ${d.topStars} on ${d.top}`,
           `${d.years} years on github`,
-          d.priv && "a lot of my work is private, so the chart shows more than the log",
+          d.priv && "a lot of my work is private, so some days look quiet when they weren’t",
         ].filter(Boolean);
-        text("[data-foot]", foot.join(" · ").toUpperCase());
-
-        // --- weekly line chart (rolling 7-day chunks counted back from today)
-        const weeks: number[] = [];
-        for (let end = counts.length; end >= 7 && weeks.length < 52; end -= 7)
-          weeks.unshift(counts.slice(end - 7, end).reduce((a, b) => a + b, 0));
-
-        const W = 600, H = 100, PAD = 6;
-        const max = Math.max(1, ...weeks);
-        const peak = weeks.indexOf(Math.max(...weeks));
-        const x = (i: number) => (i / Math.max(1, weeks.length - 1)) * W;
-        const y = (n: number) => H - PAD - (n / max) * (H - PAD * 2);
-        const line = weeks.map((n, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(n).toFixed(1)}`).join("");
-
-        const plot = q("[data-plot]");
-        plot.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-          <path class="area" d="${line}L${W},${H}L0,${H}Z" /><path class="stroke" d="${line}" /></svg>`;
-
-        const dot = (i: number, cls: string) => {
-          const el = document.createElement("i");
-          el.className = `dot ${cls}`;
-          el.style.left = `${(x(i) / W) * 100}%`;
-          el.style.top = `${(y(weeks[i]) / H) * 100}%`;
-          plot.append(el);
-        };
-        const note = (i: number, label: string, left: boolean) => {
-          const el = document.createElement("span");
-          el.className = "note" + (left ? " left" : "");
-          el.textContent = label;
-          el.title = `${weeks[i]} contributions that week`;
-          el.style.left = `${(x(i) / W) * 100}%`;
-          el.style.top = `${(y(weeks[i]) / H) * 100}%`;
-          plot.append(el);
-        };
-        dot(weeks.length - 1, "now");
-        note(weeks.length - 1, "you are here", true);
-        if (weeks[peak] > 0 && peak < weeks.length - 6) {
-          dot(peak, "peak");
-          note(peak, "big week", peak > weeks.length * 0.6);
-        }
-
-        // --- git log: the newest line types itself out, times keep ticking
-        const log = q("[data-log]");
-        const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
-        d.recent.forEach((c, i) => {
-          const li = document.createElement("li");
-          const cell = (cls: string, t: string) => {
-            const span = document.createElement("span");
-            span.className = cls;
-            span.textContent = t;
-            li.append(span);
-            return span;
-          };
-          cell("t", ago(c.date)).dataset.date = c.date;
-          cell("r", c.repo);
-          const m = cell("m", i || calm ? c.msg : "");
-          if (!i) {
-            if (!calm) {
-              let n = 0;
-              const type = () => {
-                m.textContent = c.msg.slice(0, ++n);
-                if (n < c.msg.length) setTimeout(type, 28);
-              };
-              setTimeout(type, 500);
-            }
-          }
-          log.append(li);
-        });
-        setInterval(() => {
-          for (const t of log.querySelectorAll<HTMLElement>("[data-date]")) t.textContent = ago(t.dataset.date!);
-        }, 60_000);
+        q("[data-foot]").textContent = foot.join(" · ").toUpperCase();
       })
       .catch(() => (root.hidden = true));
   }
