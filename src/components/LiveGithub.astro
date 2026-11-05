@@ -1,0 +1,118 @@
+---
+// Live GitHub strip. All in the visitor's browser, unauthenticated: one repos
+// call, then commits from the few recently pushed repos in parallel. Cached
+// for 10 minutes so reloads don't burn the rate limit. If anything fails the
+// strip hides itself.
+const user = "aditbajaj";
+---
+
+<a class="live" href={`https://github.com/${user}`} target="_blank" rel="noopener noreferrer" data-live data-user={user}>
+  <div class="live-head">
+    <span class="eyebrow"><span class="signal pulse"></span>LIVE FROM GITHUB</span>
+    <span class="live-last">
+      <span class="muted" data-ago>checking…</span>
+      <strong data-repo></strong>
+      <span class="live-msg" data-msg></span>
+    </span>
+  </div>
+  <div class="live-stats">
+    <div><strong data-s="stars"></strong><span class="eyebrow muted" data-l="stars"></span></div>
+    <div><strong data-s="commits"></strong><span class="eyebrow muted" data-l="commits">CONTRIBUTIONS / 4 WEEKS</span></div>
+    <div><strong data-s="active"></strong><span class="eyebrow muted">DAYS ACTIVE OF 28</span></div>
+    <div><strong data-s="years"></strong><span class="eyebrow muted">ON GITHUB / <span data-l="repos"></span> REPOS</span></div>
+  </div>
+  <div class="live-viz">
+    <div class="live-chart" data-chart aria-hidden="true"></div>
+    <div class="live-langs">
+      <div class="lang-bar" data-bar aria-hidden="true"></div>
+      <span class="eyebrow muted" data-langs></span>
+    </div>
+  </div>
+</a>
+
+<script>
+  const root = document.querySelector<HTMLAnchorElement>("[data-live]");
+
+  if (root) {
+    const KEY = "gh-live-v4";
+    const TTL = import.meta.env.DEV ? 0 : 10 * 60 * 1000; // no browser cache while developing
+        const $ = (s: string) => root.querySelector<HTMLElement>(s)!;
+
+    type Data = {
+      repo: string; url: string; pushed: string; msg: string;
+      stars: number; top: string; topStars: number; repos: number; langs: [string, number][]; years: number;
+      days: [string, number][]; // [date, contributions], oldest first, includes private work
+      priv: number; // private contributions in the window, a count and nothing else
+    };
+
+    const ago = (iso: string) => {
+      const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+      if (s < 90) return "just now";
+      if (s < 3600) return `${Math.round(s / 60)}m ago`;
+      if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+      return `${Math.round(s / 86400)}d ago`;
+    };
+
+    // Our own tiny Worker (worker/index.js) holds the GitHub token; the
+    // browser only ever sees the aggregate JSON.
+    const load = async (): Promise<Data> => {
+      try {
+        const c = JSON.parse(localStorage.getItem(KEY) ?? "null");
+        if (c && Date.now() - c.t < TTL) return c.d;
+      } catch {}
+
+      const res = await fetch("/api/github/");
+      if (!res.ok) throw new Error(String(res.status));
+      const d: Data = await res.json();
+      try {
+        localStorage.setItem(KEY, JSON.stringify({ t: Date.now(), d }));
+      } catch {}
+      return d;
+    };
+
+    load()
+      .then((d) => {
+        if (d.pushed) {
+          const tick = () => ($("[data-ago]").textContent = `last public commit ${ago(d.pushed)}`);
+          tick();
+          setInterval(tick, 60_000);
+        } else $("[data-ago]").textContent = "";
+        $("[data-repo]").textContent = d.repo;
+        $("[data-msg]").textContent = d.msg ? `“${d.msg}”` : "";
+        root.href = d.url;
+
+        const counts = d.days.map(([, n]) => n);
+        const total = counts.reduce((a, b) => a + b, 0);
+        const set = (k: string, v: string) => (root.querySelector<HTMLElement>(`[data-s="${k}"]`)!.textContent = v);
+        set("stars", `${d.stars} ★`);
+        set("commits", String(total));
+        set("active", String(counts.filter(Boolean).length));
+        set("years", `${d.years} yr${d.years === 1 ? "" : "s"}`);
+        root.querySelector<HTMLElement>('[data-l="stars"]')!.textContent = d.topStars ? `STARS / ${d.top.toUpperCase()} HAS ${d.topStars}` : "STARS";
+        root.querySelector<HTMLElement>('[data-l="repos"]')!.textContent = String(d.repos);
+
+        const langTotal = d.langs.reduce((n, [, c]) => n + c, 0) || 1;
+        d.langs.forEach(([name, c], i) => {
+          const seg = document.createElement("span");
+          seg.style.flex = String(c / langTotal);
+          seg.dataset.i = String(i);
+          seg.title = `${name}: ${c} repo${c === 1 ? "" : "s"}`;
+          $("[data-bar]").append(seg);
+        });
+        $("[data-langs]").textContent = d.langs.map(([n]) => n).join(" · ");
+
+        $("[data-l=\"commits\"]").textContent = d.priv ? `CONTRIBUTIONS / 4 WEEKS, SOME PRIVATE` : "CONTRIBUTIONS / 4 WEEKS";
+        const max = Math.max(1, ...counts);
+        const chart = $("[data-chart]");
+        d.days.forEach(([date, n]) => {
+          const bar = document.createElement("span");
+          bar.style.setProperty("--h", `${n ? 14 + (n / max) * 86 : 0}%`);
+          if (n) bar.className = "on";
+          const day = new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+          bar.title = `${n} contribution${n === 1 ? "" : "s"}, ${day}`;
+          chart.append(bar);
+        });
+      })
+      .catch(() => (root.hidden = true));
+  }
+</script>

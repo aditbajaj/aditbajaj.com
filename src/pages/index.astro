@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import Layout from "../layouts/Layout.astro";
+import LiveGithub from "../components/LiveGithub.astro";
 
 const all = (await getCollection("projects")).sort(
   (a, b) => a.data.order - b.data.order,
@@ -40,6 +41,7 @@ const tools = [
         </p>
       </div>
     </div>
+    <LiveGithub />
   </section>
 
   <section id="work" aria-labelledby="job-title">
