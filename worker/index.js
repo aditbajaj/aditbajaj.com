@@ -5,7 +5,6 @@
 // Privacy rule: private repos contribute COUNTS only (the calendar and the
 // "private" total). Names, URLs and commit messages come from public repos.
 
-const DAYS = 28;
 const TTL = 600; // seconds, edge cache
 
 const QUERY = `
@@ -24,7 +23,7 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
         name url stargazerCount
         primaryLanguage { name }
         defaultBranchRef { target { ... on Commit {
-          history(first: 1) { nodes { messageHeadline committedDate } }
+          history(first: 5) { nodes { messageHeadline committedDate } }
         } } }
       }
     }
@@ -42,7 +41,7 @@ const json = (body, status = 200, maxAge = 0) =>
 
 async function build(env) {
   const to = new Date();
-  const from = new Date(to.getTime() - 40 * 86_400_000); // a bit over, we trim to DAYS below
+  const from = new Date(to.getTime() - 364 * 86_400_000); // GitHub allows at most a year
 
   const res = await fetch("https://api.github.com/graphql", {
     method: "POST",
@@ -63,26 +62,24 @@ async function build(env) {
 
   const days = u.contributionsCollection.contributionCalendar.weeks
     .flatMap((w) => w.contributionDays)
-    .map((d) => [d.date, d.contributionCount])
-    .slice(-DAYS);
+    .map((d) => [d.date, d.contributionCount]);
 
   const repos = u.repositories.nodes;
   const byStars = [...repos].sort((a, b) => b.stargazerCount - a.stargazerCount)[0];
   const langs = {};
   for (const r of repos) if (r.primaryLanguage) langs[r.primaryLanguage.name] = (langs[r.primaryLanguage.name] ?? 0) + 1;
 
-  // Newest commit on any public repo's default branch.
-  let latest = null;
-  for (const r of repos) {
-    const c = r.defaultBranchRef?.target?.history?.nodes?.[0];
-    if (c && (!latest || c.committedDate > latest.committedDate)) latest = { ...c, repo: r };
-  }
+  // Newest commits on any public repo's default branch.
+  const recent = repos
+    .flatMap((r) => (r.defaultBranchRef?.target?.history?.nodes ?? []).map((c) => ({ ...c, repo: r })))
+    .sort((a, b) => (a.committedDate < b.committedDate ? 1 : -1))
+    .slice(0, 5);
+  const latest = recent[0];
 
   return {
     repo: latest?.repo.name ?? "",
     url: latest?.repo.url ?? `https://github.com/${env.GITHUB_USER}`,
-    pushed: latest?.committedDate ?? "",
-    msg: latest?.messageHeadline ?? "",
+    recent: recent.map((c) => ({ repo: c.repo.name, msg: c.messageHeadline, date: c.committedDate })),
     stars: repos.reduce((n, r) => n + r.stargazerCount, 0),
     top: byStars?.name ?? "",
     topStars: byStars?.stargazerCount ?? 0,
