@@ -2,8 +2,13 @@
 // everything else is the static site. The GITHUB_TOKEN secret never leaves
 // this file: the browser only sees the aggregate JSON below.
 //
-// Privacy rule: private repos contribute COUNTS only (the calendar and the
-// "private" total). Names, URLs and commit messages come from public repos.
+// Private repos (Outcoach etc.) are shown by NAME and counted in the language
+// breakdown, but their commit messages and links are never sent: a title like
+// "fix auth bypass" would otherwise end up public. To show messages too, flip
+// SHOW_PRIVATE_MESSAGES. The token needs the `repo` scope (and SSO
+// authorisation for org repos) to see them at all.
+const SHOW_PRIVATE_MESSAGES = false;
+const SKIP = new Set(["aditbajaj.com"]); // the site itself: boring, and always the newest commit
 
 const TTL = 600; // seconds, edge cache
 
@@ -17,17 +22,27 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
         weeks { contributionDays { date contributionCount } }
       }
     }
-    repositories(ownerAffiliations: OWNER, isFork: false, privacy: PUBLIC, first: 100,
+    repositories(ownerAffiliations: [OWNER, COLLABORATOR], isFork: false, first: 100,
                  orderBy: { field: PUSHED_AT, direction: DESC }) {
-      nodes {
-        name url stargazerCount
-        primaryLanguage { name }
-        defaultBranchRef { target { ... on Commit {
-          history(first: 10) { nodes { messageHeadline committedDate } }
-        } } }
-      }
+      nodes { ...R }
+    }
+    organizations(first: 10) {
+      nodes { repositories(isFork: false, first: 100) { nodes { ...R } } }
+    }
+    # Private-org work doesn't show up per repo in the contribution calendar,
+    # but the user's own pull requests do (name and date; titles only if public).
+    pullRequests(first: 40, orderBy: { field: CREATED_AT, direction: DESC }) {
+      nodes { createdAt title repository { name isPrivate } }
     }
   }
+}
+
+fragment R on Repository {
+  name url isPrivate stargazerCount
+  languages(first: 8, orderBy: { field: SIZE, direction: DESC }) { edges { size node { name } } }
+  defaultBranchRef { target { ... on Commit {
+    history(first: 25) { nodes { messageHeadline committedDate author { user { login } } } }
+  } } }
 }`;
 
 const json = (body, status = 200, maxAge = 0) =>
@@ -64,27 +79,42 @@ async function build(env) {
     .flatMap((w) => w.contributionDays)
     .map((d) => [d.date, d.contributionCount]);
 
-  const repos = u.repositories.nodes;
-  const byStars = [...repos].sort((a, b) => b.stargazerCount - a.stargazerCount)[0];
-  const langs = {};
-  for (const r of repos) if (r.primaryLanguage) langs[r.primaryLanguage.name] = (langs[r.primaryLanguage.name] ?? 0) + 1;
+  const everything = [...u.repositories.nodes, ...u.organizations.nodes.flatMap((o) => o.repositories.nodes)];
+  const repos = everything.filter((r) => !SKIP.has(r.name));
+  const pub = repos.filter((r) => !r.isPrivate);
+  const byStars = [...pub].sort((a, b) => b.stargazerCount - a.stargazerCount)[0];
 
-  // Newest commits on any public repo's default branch.
-  const recent = repos
-    .flatMap((r) => (r.defaultBranchRef?.target?.history?.nodes ?? []).map((c) => ({ ...c, repo: r })))
-    .sort((a, b) => (a.committedDate < b.committedDate ? 1 : -1))
-    .slice(0, 20);
+  // Languages by amount of code (bytes GitHub measured), across everything.
+  const bytes = {};
+  for (const r of repos) for (const e of r.languages.edges) bytes[e.node.name] = (bytes[e.node.name] ?? 0) + e.size;
+  const all = Object.values(bytes).reduce((n, v) => n + v, 0) || 1;
+  const langs = Object.entries(bytes)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, v]) => [name, +((v / all) * 100).toFixed(1)]);
+
+  // Newest work of mine: commits on public default branches (with messages),
+  // plus pull requests, which is how private org work shows up.
+  const hide = (r) => r.isPrivate && !SHOW_PRIVATE_MESSAGES;
+  const commits = repos.flatMap((r) =>
+    (r.defaultBranchRef?.target?.history?.nodes ?? [])
+      .filter((c) => c.author?.user?.login === env.GITHUB_USER)
+      .map((c) => ({ repo: r.name, private: r.isPrivate, url: r.url, msg: hide(r) ? "" : c.messageHeadline, date: c.committedDate })),
+  );
+  const prs = u.pullRequests.nodes
+    .filter((p) => !SKIP.has(p.repository.name))
+    .map((p) => ({ repo: p.repository.name, private: p.repository.isPrivate, url: "", msg: hide(p.repository) ? "" : p.title, date: p.createdAt }));
+  const recent = [...commits, ...prs].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 20);
   const latest = recent[0];
 
   return {
-    repo: latest?.repo.name ?? "",
-    url: latest?.repo.url ?? `https://github.com/${env.GITHUB_USER}`,
-    recent: recent.map((c) => ({ repo: c.repo.name, msg: c.messageHeadline, date: c.committedDate })),
-    stars: repos.reduce((n, r) => n + r.stargazerCount, 0),
+    url: latest && !latest.private && latest.url ? latest.url : `https://github.com/${env.GITHUB_USER}`,
+    recent: recent.map(({ repo, private: priv, msg, date }) => ({ repo, private: priv, msg, date })),
+    stars: pub.reduce((n, r) => n + r.stargazerCount, 0),
     top: byStars?.name ?? "",
     topStars: byStars?.stargazerCount ?? 0,
     repos: repos.length,
-    langs: Object.entries(langs).sort((a, b) => b[1] - a[1]).slice(0, 5),
+    langs,
     years: Math.max(1, Math.round((Date.now() - new Date(u.createdAt)) / (365.25 * 86_400_000))),
     days,
     // Private contributions over the whole window, count only.
