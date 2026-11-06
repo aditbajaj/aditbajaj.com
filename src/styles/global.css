@@ -84,4 +84,4 @@ body{min-height:100vh;display:flex;flex-direction:column}main{flex:1;width:100%}
 .cred-list li:before{content:'+';font:12px/1.7 'IBM Plex Mono';color:var(--primary)}
 .credentials-band{align-items:center}
 
-.b64{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:none;letter-spacing:0;color:var(--muted-foreground);user-select:all}
+.footer-sig{display:block;margin-top:18px;font:8px 'IBM Plex Mono';color:var(--muted-foreground);opacity:.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:all;transition:opacity .2s}.footer-sig:hover{opacity:1}
