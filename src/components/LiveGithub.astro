@@ -1,36 +1,64 @@
 ---
-// One-line GitHub strip. The browser asks our own Worker (worker/index.js),
-// which holds the GitHub token and returns aggregates: private repos only
-// ever show up as counts, never names or messages. Cached in the browser for
-// 10 minutes. If anything fails the strip hides.
+// Live GitHub card. The browser asks our own Worker (worker/index.js), which
+// holds the GitHub token and returns aggregates: private repos only ever show
+// up as counts, never names or messages. Cached in the browser for 10 minutes.
+// If anything fails the card hides itself.
 const user = "aditbajaj";
 ---
 
 <a class="live" href={`https://github.com/${user}`} target="_blank" rel="noopener noreferrer" data-live>
-  <span class="live-tag eyebrow"><span class="signal pulse"></span>LIVE</span>
-  <span class="live-last">
-    <span class="live-when muted" data-when></span>
-    <strong data-repo></strong>
-    <span class="live-msg" data-msg></span>
-  </span>
-  <span class="live-spark">
-    <span class="spark" data-spark aria-hidden="true"></span>
-    <span class="eyebrow muted">14 DAYS</span>
-  </span>
+  <div class="live-head">
+    <span class="eyebrow"><span class="signal pulse"></span>LIVE FROM GITHUB</span>
+    <span class="mood" data-mood></span>
+  </div>
+
+  <div class="live-body">
+    <section class="graph">
+      <div class="graph-title">
+        <h3 data-total></h3>
+        <span class="legend eyebrow">LESS <i data-l="0"></i><i data-l="1"></i><i data-l="2"></i><i data-l="3"></i><i data-l="4"></i> MORE</span>
+      </div>
+      <div class="graph-wrap">
+        <div class="graph-days eyebrow" aria-hidden="true"><span>MON</span><span>WED</span><span>FRI</span></div>
+        <div class="graph-main">
+          <div class="graph-months eyebrow" data-months aria-hidden="true"></div>
+          <div class="graph-grid" data-grid aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div>
+        <span class="eyebrow">LATEST PUSH</span>
+        <p class="side-msg" data-msg></p>
+        <p class="side-meta eyebrow"><span data-repo></span> · <span data-when></span></p>
+      </div>
+      <div>
+        <span class="eyebrow">WHAT I WRITE</span>
+        <div class="lang-bar" data-bar aria-hidden="true"></div>
+        <ul class="lang-list" data-langs></ul>
+      </div>
+    </aside>
+  </div>
+
+  <p class="live-foot eyebrow" data-foot></p>
 </a>
 
 <script>
   const root = document.querySelector<HTMLAnchorElement>("[data-live]");
 
   if (root) {
-    const KEY = "gh-live-v8";
+    const KEY = "gh-live-v9";
     const TTL = import.meta.env.DEV ? 0 : 10 * 60 * 1000; // no browser cache while developing
     const q = <T extends HTMLElement = HTMLElement>(s: string) => root.querySelector<T>(s)!;
 
     type Data = {
       url: string;
       recent: { repo: string; msg: string; date: string }[];
+      stars: number; top: string; topStars: number; repos: number; years: number;
+      langs: [string, number][];
       days: [string, number][]; // [date, contributions], oldest first, includes private work
+      priv: number; // private contributions in the window, a count and nothing else
     };
 
     const ago = (iso: string) => {
@@ -39,6 +67,16 @@ const user = "aditbajaj";
       if (s < 3600) return `${Math.round(s / 60)}m ago`;
       if (s < 86400) return `${Math.round(s / 3600)}h ago`;
       return `${Math.round(s / 86400)}d ago`;
+    };
+
+    // A line about what's going on right now, from the real data. First match wins.
+    const mood = (d: Data, streak: number) => {
+      const hours = d.recent[0] ? (Date.now() - new Date(d.recent[0].date).getTime()) / 3_600_000 : Infinity;
+      if (hours < 2) return "literally just pushed something";
+      if (streak >= 3) return `on a ${streak} day run, don’t interrupt`;
+      if (hours < 24) return "was in the code today";
+      if (hours < 24 * 7) return `last shipped ${Math.round(hours / 24)} days ago`;
+      return "taking a breather, probably planning something";
     };
 
     const load = async (): Promise<Data> => {
@@ -56,29 +94,78 @@ const user = "aditbajaj";
       return d;
     };
 
+    const text = (sel: string, v: string) => (q(sel).textContent = v);
+
     load()
       .then((d) => {
         const last = d.recent[0];
-        if (!last) throw new Error("nothing public yet");
-        root.href = d.url;
-        const tick = () => (q("[data-when]").textContent = `pushed ${ago(last.date)} to`);
-        tick();
-        setInterval(tick, 60_000);
-        q("[data-repo]").textContent = last.repo;
-        q("[data-msg]").textContent = `“${last.msg}”`;
+        root.href = d.url; // the repo of the latest commit
+        const counts = d.days.map(([, n]) => n);
+        const total = counts.reduce((a, b) => a + b, 0);
 
-        // last 14 days, one bar each; hover for the day (private work counts too)
-        const days = d.days.slice(-14);
-        const max = Math.max(1, ...days.map(([, n]) => n));
-        days.forEach(([date, n], i) => {
-          const bar = document.createElement("i");
-          bar.style.setProperty("--h", `${n ? 20 + (n / max) * 80 : 0}%`);
-          if (n) bar.className = "on";
-          if (i === days.length - 1) bar.dataset.today = "";
-          const day = new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
-          bar.title = `${n} contribution${n === 1 ? "" : "s"}, ${day}`;
-          q("[data-spark]").append(bar);
+        let streak = 0; // today may still be empty, so a run can end yesterday
+        for (let i = counts.length - 1 - (counts[counts.length - 1] ? 0 : 1); i >= 0 && counts[i]; i--) streak++;
+        text("[data-mood]", mood(d, streak));
+        text("[data-total]", `${total.toLocaleString()} contributions in the last year`);
+
+        // --- latest push
+        text("[data-msg]", last ? `“${last.msg}”` : "nothing public yet");
+        text("[data-repo]", last?.repo ?? "");
+        text("[data-when]", last ? ago(last.date) : "");
+
+        // --- year graph: a column per week (Sunday first), a square per day
+        const grid = q("[data-grid]");
+        const months = q("[data-months]");
+        const max = Math.max(1, ...counts);
+        const pad = new Date(`${d.days[0][0]}T12:00:00`).getDay();
+        const cols = Math.ceil((pad + d.days.length) / 7);
+        q(".graph-main").style.setProperty("--cols", String(cols));
+        for (let i = 0; i < pad; i++) grid.append(document.createElement("span"));
+
+        let lastMonth = -1;
+        d.days.forEach(([date, n], i) => {
+          const day = new Date(`${date}T12:00:00`);
+          const cell = document.createElement("span");
+          cell.dataset.l = String(n ? Math.min(4, Math.ceil((n / max) * 4)) : 0);
+          if (i === d.days.length - 1) cell.dataset.today = "";
+          cell.title = `${n} contribution${n === 1 ? "" : "s"}, ${day.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}`;
+          grid.append(cell);
+
+          const col = Math.floor((pad + i) / 7) + 1;
+          if (day.getMonth() !== lastMonth && (pad + i) % 7 < 4 && col <= cols - 2) {
+            lastMonth = day.getMonth();
+            const label = document.createElement("span");
+            label.textContent = day.toLocaleDateString("en", { month: "short" }).toUpperCase();
+            label.style.gridColumn = String(col);
+            months.append(label);
+          }
         });
+        q(".graph-main").scrollLeft = 1e5; // on narrow screens show the recent end
+
+        // --- languages
+        const langTotal = d.langs.reduce((n, [, c]) => n + c, 0) || 1;
+        d.langs.forEach(([name, c], i) => {
+          const seg = document.createElement("span");
+          seg.style.flex = String(c);
+          seg.dataset.i = String(i);
+          q("[data-bar]").append(seg);
+          const li = document.createElement("li");
+          li.dataset.i = String(i);
+          li.textContent = `${name} ${Math.round((c / langTotal) * 100)}%`;
+          q("[data-langs]").append(li);
+        });
+
+        // --- the quiet facts
+        text(
+          "[data-foot]",
+          [
+            d.topStars && `★ ${d.topStars} on ${d.top}`,
+            `${d.stars} stars in all`,
+            `${d.repos} public repos`,
+            `${d.years} years on github`,
+            d.priv && "private work is counted but never shown",
+          ].filter(Boolean).join("  /  ").toUpperCase(),
+        );
       })
       .catch(() => (root.hidden = true));
   }
