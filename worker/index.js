@@ -2,12 +2,23 @@
 // everything else is the static site. The GITHUB_TOKEN secret never leaves
 // this file: the browser only sees the aggregate JSON below.
 //
-// Private repos (Outcoach etc.) are shown by NAME and counted in the language
-// breakdown, but their commit messages and links are never sent: a title like
-// "fix auth bypass" would otherwise end up public. To show messages too, flip
-// SHOW_PRIVATE_MESSAGES. The token needs the `repo` scope (and SSO
-// authorisation for org repos) to see them at all.
-const SHOW_PRIVATE_MESSAGES = false;
+// Private repos (Outcoach etc.) are shown by name. Commit and PR titles are
+// shown too, but only ones the user wrote (flip SHOW_PRIVATE_MESSAGES to hide
+// titles from private repos). Private links are never sent. The token needs
+// the `repo` scope (and SSO authorisation for org repos) to see any of it.
+const SHOW_PRIVATE_MESSAGES = true;
+
+// "What I write": lines ADDED by the user's own recent commits and PRs, by
+// file type. Lockfiles, generated code, data and docs don't count.
+const LANG = {
+  ts: "TypeScript", tsx: "TypeScript", js: "JavaScript", jsx: "JavaScript", mjs: "JavaScript",
+  dart: "Dart", py: "Python", go: "Go", rs: "Rust", astro: "Astro", svelte: "Svelte",
+  html: "HTML", css: "CSS", scss: "CSS", sql: "SQL", gd: "GDScript", cs: "C#", c: "C", h: "C",
+  kt: "Kotlin", swift: "Swift", java: "Java", sh: "Shell", mdx: "MDX",
+};
+const SKIP_PATH = /(^|\/)(node_modules|dist|build|\.dart_tool|generated|migrations)\/|\.(g|freezed|min)\.|lock|\.d\.ts$/;
+const language = (path) => (SKIP_PATH.test(path) ? null : LANG[path.split(".").pop().toLowerCase()] ?? null);
+const COMMIT_FILES = 30; // REST lookups per refresh (Workers cap subrequests)
 const SKIP = new Set(["aditbajaj.com"]); // the site itself: boring, and always the newest commit
 
 const TTL = 600; // seconds, edge cache
@@ -32,16 +43,15 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
     # Private-org work doesn't show up per repo in the contribution calendar,
     # but the user's own pull requests do (name and date; titles only if public).
     pullRequests(first: 40, orderBy: { field: CREATED_AT, direction: DESC }) {
-      nodes { createdAt title repository { name isPrivate } }
+      nodes { createdAt title repository { name isPrivate } files(first: 100) { nodes { path additions } } }
     }
   }
 }
 
 fragment R on Repository {
-  name url isPrivate stargazerCount
-  languages(first: 8, orderBy: { field: SIZE, direction: DESC }) { edges { size node { name } } }
+  name nameWithOwner url isPrivate stargazerCount
   defaultBranchRef { target { ... on Commit {
-    history(first: 25) { nodes { messageHeadline committedDate author { user { login } } } }
+    history(first: 25) { nodes { oid messageHeadline committedDate author { user { login } } } }
   } } }
 }`;
 
@@ -84,26 +94,44 @@ async function build(env) {
   const pub = repos.filter((r) => !r.isPrivate);
   const byStars = [...pub].sort((a, b) => b.stargazerCount - a.stargazerCount)[0];
 
-  // Languages by amount of code (bytes GitHub measured), across everything.
-  const bytes = {};
-  for (const r of repos) for (const e of r.languages.edges) bytes[e.node.name] = (bytes[e.node.name] ?? 0) + e.size;
-  const all = Object.values(bytes).reduce((n, v) => n + v, 0) || 1;
-  const langs = Object.entries(bytes)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([name, v]) => [name, +((v / all) * 100).toFixed(1)]);
-
   // Newest work of mine: commits on public default branches (with messages),
   // plus pull requests, which is how private org work shows up.
   const hide = (r) => r.isPrivate && !SHOW_PRIVATE_MESSAGES;
+  const owned = new Set(u.repositories.nodes.map((r) => r.name));
   const commits = repos.flatMap((r) =>
     (r.defaultBranchRef?.target?.history?.nodes ?? [])
       .filter((c) => c.author?.user?.login === env.GITHUB_USER)
-      .map((c) => ({ repo: r.name, private: r.isPrivate, url: r.url, msg: hide(r) ? "" : c.messageHeadline, date: c.committedDate })),
+      .map((c) => ({ repo: r.name, full: r.nameWithOwner, oid: c.oid, private: r.isPrivate, url: r.url, msg: hide(r) ? "" : c.messageHeadline, date: c.committedDate })),
   );
   const prs = u.pullRequests.nodes
     .filter((p) => !SKIP.has(p.repository.name))
     .map((p) => ({ repo: p.repository.name, private: p.repository.isPrivate, url: "", msg: hide(p.repository) ? "" : p.title, date: p.createdAt }));
+  // Org commits on the default branch are merged PRs, which are counted via
+  // their files below; counting them again here would double up.
+  const ownCommits = commits.filter((c) => owned.has(c.repo)).slice(0, COMMIT_FILES);
+
+  const added = {};
+  const add = (path, n) => {
+    const l = language(path);
+    if (l) added[l] = (added[l] ?? 0) + n;
+  };
+  for (const p of u.pullRequests.nodes) for (const f of p.files?.nodes ?? []) add(f.path, f.additions);
+  await Promise.all(
+    ownCommits.map((c) =>
+      fetch(`https://api.github.com/repos/${c.full}/commits/${c.oid}`, {
+        headers: { authorization: `bearer ${env.GITHUB_TOKEN}`, "user-agent": "aditbajaj-com", accept: "application/vnd.github+json" },
+      })
+        .then((r) => (r.ok ? r.json() : { files: [] }))
+        .then((j) => (j.files ?? []).forEach((f) => add(f.filename, f.additions)))
+        .catch(() => {}),
+    ),
+  );
+  const total = Object.values(added).reduce((n, v) => n + v, 0) || 1;
+  const langs = Object.entries(added)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, v]) => [name, +((v / total) * 100).toFixed(1)]);
+
   const recent = [...commits, ...prs].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 20);
   const latest = recent[0];
 
