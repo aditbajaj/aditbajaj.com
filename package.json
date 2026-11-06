@@ -10,7 +10,8 @@
     "build": "astro build",
     "check": "astro check",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "bust": "curl -fsS \"https://aditbajaj.com/api/github/?fresh=1\" -o /dev/null -w \"refreshed: HTTP %{http_code}\\n\""
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.5",

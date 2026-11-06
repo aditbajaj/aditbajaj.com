@@ -8,23 +8,17 @@
 // the `repo` scope (and SSO authorisation for org repos) to see any of it.
 const SHOW_PRIVATE_MESSAGES = true;
 
-// "What I write": lines ADDED by the user's own recent commits in their OWN
-// repos (public and private), by file type. Org work (Outcoach) is left out on
-// purpose, it's a team codebase. Lockfiles, generated code, data and docs
-// don't count.
-const LANG = {
-  ts: "TypeScript", tsx: "TypeScript", js: "JavaScript", jsx: "JavaScript", mjs: "JavaScript",
-  dart: "Dart", py: "Python", go: "Go", rs: "Rust", astro: "Astro", svelte: "Svelte",
-  html: "HTML", css: "CSS", scss: "CSS", sql: "SQL", gd: "GDScript", cs: "C#", c: "C", h: "C",
-  kt: "Kotlin", swift: "Swift", java: "Java", sh: "Shell", mdx: "MDX",
-};
-const SKIP_PATH = /(^|\/)(node_modules|dist|build|\.dart_tool|generated|migrations)\/|\.(g|freezed|min)\.|lock|\.d\.ts$/;
-const language = (path) => (SKIP_PATH.test(path) ? null : LANG[path.split(".").pop().toLowerCase()] ?? null);
-const PER_REPO = 3; // newest commits sampled per repo, so every repo gets a say
-const COMMIT_FILES = 45; // REST lookups per refresh (Workers cap subrequests at 50 on the free plan)
+// "What I write": GitHub's own code-size count (bytes per language) summed over
+// every repo the user OWNS, public and private. They're solo projects, so it is
+// their code. The Outcoach org is left out on purpose (a team codebase) and so
+// is the site's own repo (SKIP).
 const SKIP = new Set(["aditbajaj.com"]); // the site itself: boring, and always the newest commit
 
-const TTL = 600; // seconds, edge cache
+const TTL = 3600; // seconds, edge cache (an hour)
+// `?fresh=1` skips the edge cache, for testing (`bun run bust`). Anyone can
+// ask, so it only works if the cached copy is over a minute old: GitHub is
+// never hit more than once a minute.
+const FRESH_AFTER = 60_000;
 
 const QUERY = `
 query($login: String!, $from: DateTime!, $to: DateTime!) {
@@ -52,18 +46,21 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
 }
 
 fragment R on Repository {
-  name nameWithOwner url isPrivate stargazerCount
+  name url isPrivate stargazerCount
+  languages(first: 10, orderBy: { field: SIZE, direction: DESC }) { edges { size node { name } } }
   defaultBranchRef { target { ... on Commit {
-    history(first: 25) { nodes { oid messageHeadline committedDate author { user { login } } } }
+    history(first: 25) { nodes { messageHeadline committedDate author { user { login } } } }
   } } }
 }`;
 
-const json = (body, status = 200, maxAge = 0) =>
+const json = (body, status = 200, maxAge = 0, extra = {}) =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
       "content-type": "application/json",
-      "cache-control": `public, max-age=${maxAge}, s-maxage=${maxAge}`,
+      // browsers recheck after a minute, the edge keeps it for the full TTL
+      "cache-control": `public, max-age=${Math.min(maxAge, 60)}, s-maxage=${maxAge}`,
+      ...extra,
     },
   });
 
@@ -71,7 +68,7 @@ async function build(env) {
   const to = new Date();
   const from = new Date(to.getTime() - 364 * 86_400_000); // GitHub allows at most a year
 
-  const res = await fetch("https://api.github.com/graphql", {
+  const call = () => fetch("https://api.github.com/graphql", {
     method: "POST",
     headers: {
       authorization: `bearer ${env.GITHUB_TOKEN}`,
@@ -83,6 +80,8 @@ async function build(env) {
       variables: { login: env.GITHUB_USER, from: from.toISOString(), to: to.toISOString() },
     }),
   });
+  let res = await call();
+  if (res.status >= 500) res = await call(); // GitHub 502s now and then
   if (!res.ok) throw new Error(`github ${res.status}`);
   const { data, errors } = await res.json();
   if (errors || !data?.user) throw new Error("graphql");
@@ -100,41 +99,24 @@ async function build(env) {
   // Newest work of mine: commits on public default branches (with messages),
   // plus pull requests, which is how private org work shows up.
   const hide = (r) => r.isPrivate && !SHOW_PRIVATE_MESSAGES;
-  const owned = new Set(u.repositories.nodes.map((r) => r.name));
   const commits = repos.flatMap((r) =>
     (r.defaultBranchRef?.target?.history?.nodes ?? [])
       .filter((c) => c.author?.user?.login === env.GITHUB_USER)
-      .map((c) => ({ repo: r.name, full: r.nameWithOwner, oid: c.oid, private: r.isPrivate, url: r.url, msg: hide(r) ? "" : c.messageHeadline, date: c.committedDate })),
+      .map((c) => ({ repo: r.name, private: r.isPrivate, url: r.url, msg: hide(r) ? "" : c.messageHeadline, date: c.committedDate })),
   );
   const prs = u.pullRequests.nodes
     .filter((p) => !SKIP.has(p.repository.name))
     .map((p) => ({ repo: p.repository.name, private: p.repository.isPrivate, url: "", msg: hide(p.repository) ? "" : p.title, date: p.createdAt }));
-  // A few of the newest commits from each of the user's own repos.
-  const perRepo = {};
-  const ownCommits = commits
-    .filter((c) => owned.has(c.repo))
-    .filter((c) => (perRepo[c.repo] = (perRepo[c.repo] ?? 0) + 1) <= PER_REPO)
-    .slice(0, COMMIT_FILES);
-
-  const added = {};
-  const add = (path, n) => {
-    const l = language(path);
-    if (l) added[l] = (added[l] ?? 0) + n;
-  };
-  await Promise.all(
-    ownCommits.map((c) =>
-      fetch(`https://api.github.com/repos/${c.full}/commits/${c.oid}`, {
-        headers: { authorization: `bearer ${env.GITHUB_TOKEN}`, "user-agent": "aditbajaj-com", accept: "application/vnd.github+json" },
-      })
-        .then((r) => (r.ok ? r.json() : { files: [] }))
-        .then((j) => (j.files ?? []).forEach((f) => add(f.filename, f.additions)))
-        .catch(() => {}),
-    ),
-  );
-  const total = Object.values(added).reduce((n, v) => n + v, 0) || 1;
-  const langs = Object.entries(added)
+  // Languages by amount of code, over the user's own repos only.
+  const bytes = {};
+  for (const r of u.repositories.nodes) {
+    if (SKIP.has(r.name)) continue;
+    for (const e of r.languages.edges) bytes[e.node.name] = (bytes[e.node.name] ?? 0) + e.size;
+  }
+  const total = Object.values(bytes).reduce((n, v) => n + v, 0) || 1;
+  const langs = Object.entries(bytes)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
+    .slice(0, 6)
     .map(([name, v]) => [name, +((v / total) * 100).toFixed(1)]);
 
   const recent = [...commits, ...prs].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 20);
@@ -166,10 +148,11 @@ export default {
     const cache = caches.default;
     const key = new Request(`${url.origin}/api/github`);
     const hit = await cache.match(key);
-    if (hit) return hit;
+    const stale = Date.now() - Number(hit?.headers.get("x-built-at")) > FRESH_AFTER;
+    if (hit && !(url.searchParams.has("fresh") && stale)) return hit;
 
     try {
-      const res = json(await build(env), 200, TTL);
+      const res = json(await build(env), 200, TTL, { "x-built-at": String(Date.now()) });
       ctx.waitUntil(cache.put(key, res.clone()));
       return res;
     } catch {
