@@ -8,8 +8,10 @@
 // the `repo` scope (and SSO authorisation for org repos) to see any of it.
 const SHOW_PRIVATE_MESSAGES = true;
 
-// "What I write": lines ADDED by the user's own recent commits and PRs, by
-// file type. Lockfiles, generated code, data and docs don't count.
+// "What I write": lines ADDED by the user's own recent commits in their OWN
+// repos (public and private), by file type. Org work (Outcoach) is left out on
+// purpose, it's a team codebase. Lockfiles, generated code, data and docs
+// don't count.
 const LANG = {
   ts: "TypeScript", tsx: "TypeScript", js: "JavaScript", jsx: "JavaScript", mjs: "JavaScript",
   dart: "Dart", py: "Python", go: "Go", rs: "Rust", astro: "Astro", svelte: "Svelte",
@@ -18,7 +20,8 @@ const LANG = {
 };
 const SKIP_PATH = /(^|\/)(node_modules|dist|build|\.dart_tool|generated|migrations)\/|\.(g|freezed|min)\.|lock|\.d\.ts$/;
 const language = (path) => (SKIP_PATH.test(path) ? null : LANG[path.split(".").pop().toLowerCase()] ?? null);
-const COMMIT_FILES = 30; // REST lookups per refresh (Workers cap subrequests)
+const PER_REPO = 3; // newest commits sampled per repo, so every repo gets a say
+const COMMIT_FILES = 45; // REST lookups per refresh (Workers cap subrequests at 50 on the free plan)
 const SKIP = new Set(["aditbajaj.com"]); // the site itself: boring, and always the newest commit
 
 const TTL = 600; // seconds, edge cache
@@ -43,7 +46,7 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
     # Private-org work doesn't show up per repo in the contribution calendar,
     # but the user's own pull requests do (name and date; titles only if public).
     pullRequests(first: 40, orderBy: { field: CREATED_AT, direction: DESC }) {
-      nodes { createdAt title repository { name isPrivate } files(first: 100) { nodes { path additions } } }
+      nodes { createdAt title repository { name isPrivate } }
     }
   }
 }
@@ -106,16 +109,18 @@ async function build(env) {
   const prs = u.pullRequests.nodes
     .filter((p) => !SKIP.has(p.repository.name))
     .map((p) => ({ repo: p.repository.name, private: p.repository.isPrivate, url: "", msg: hide(p.repository) ? "" : p.title, date: p.createdAt }));
-  // Org commits on the default branch are merged PRs, which are counted via
-  // their files below; counting them again here would double up.
-  const ownCommits = commits.filter((c) => owned.has(c.repo)).slice(0, COMMIT_FILES);
+  // A few of the newest commits from each of the user's own repos.
+  const perRepo = {};
+  const ownCommits = commits
+    .filter((c) => owned.has(c.repo))
+    .filter((c) => (perRepo[c.repo] = (perRepo[c.repo] ?? 0) + 1) <= PER_REPO)
+    .slice(0, COMMIT_FILES);
 
   const added = {};
   const add = (path, n) => {
     const l = language(path);
     if (l) added[l] = (added[l] ?? 0) + n;
   };
-  for (const p of u.pullRequests.nodes) for (const f of p.files?.nodes ?? []) add(f.path, f.additions);
   await Promise.all(
     ownCommits.map((c) =>
       fetch(`https://api.github.com/repos/${c.full}/commits/${c.oid}`, {
